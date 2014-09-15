@@ -33,13 +33,13 @@ When after_last_test is executed, all results should already have been gathered 
 ### Test script environment
 Each test-script is executed in its result directory. Anything stored in this directory is gathered by the test framework when the test completes.
 
-If the tests are run multiple times within each test script, the script should make sure to create the appropriate directory structure within the directory it is executing in (cwd), e.g., by creating 1,2,3 etc as subdirectories.
+If the tests are run multiple times within each test script, the script should create the appropriate directory structure within the directory it is executing in (cwd) - for example by creating 1,2,3 etc as subdirectories.
 
-Various environment variables from the Makefile will be set. See Makefile for details. In addition, the functions "kill_remote" and "wait_for_remote" are defined for the test scripts that run locally.
+Various environment variables from the Makefile will be available to the test scripts. See Makefile for details. The functions "kill_remote" and "wait_for_remote" are defined for the test scripts that run locally.
 
-The test running locally can kill the remote test by calling "kill_remote". If the remote is running after the local script completes, the test framework will try to terminate remote with SIGHUP and treat it as a success if local returned successfully. The remote test is not able to terminate the local test, but if the remote side exits before the local is ready, the local side should terminate with error. 
+If the remote is running after the local script completes, the test framework will try to terminate remote with SIGHUP and treat it as a success if local returned successfully. The remote test is not able to terminate the local test, but if the remote side exits before the local is ready, the local side should terminate with error. 
 
-The results directory will have a file called FAILED on failure and SUCCESS if the test succeeded.
+The results directory will have a file called FAILED if the test-pair failed and SUCCESS if the test-pair succeeded.
 
 ### Results ###
 
