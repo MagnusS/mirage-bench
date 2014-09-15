@@ -17,14 +17,15 @@ test-group-name/
                         remote-test-B
 ```
 
-The local directory contains tests that are executed on the local side and the remote directory contains remote side tests. The local side tests should work with any of the remote side tests, as they are executed pairwise. Any number of tests can be added as executable files in the local and remote directories, and every possible combination of them will be executed. To disable a test, use chmod to set it -x.
+The local directory contains tests that are executed on the local side and the remote directory contains tests that are executed on the remote side. The local tests should work with any of the remote tests, as the tests are executed pairwise. Any number of tests can be added as executable files in the local and remote directories, and every possible combination of them will be executed. To disable a test, use chmod to set it -x.
 
 In the example above, the executed test pairs will be:
-    - local-test-A x remote-test-A
-    - local-test-B x remote-test-A
-    - local-test-A x remote-test-B
-    - local-test-B x remote-test-B
-
+```
+    local-test-A x remote-test-A
+    local-test-B x remote-test-A
+    local-test-A x remote-test-B
+    local-test-B x remote-test-B
+```
 
 The before_first_test and after_last_test scripts are executed before the first test and after the last test in the group. These scripts can be used install dependencies or to process results and generate graphs. 
 
