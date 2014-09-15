@@ -1,0 +1,9 @@
+#!/bin/bash
+
+hostname > hostname.log
+ifconfig > ifconfig.log
+
+# wait for remote, otherwise remote will be killed when local is done
+wait_for_remote
+
+echo 'Done!'

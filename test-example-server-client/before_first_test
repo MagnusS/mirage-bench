@@ -1,0 +1,6 @@
+#!/bin/bash
+
+echo "Installing dependencies on remote node"
+
+${SSH_EXEC} "sudo apt-get install -y netcat --no-install-recommends"
+

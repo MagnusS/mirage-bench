@@ -1,0 +1,6 @@
+#!/bin/bash
+
+sudo cat /proc/cpuinfo > cpuinfo.log
+sudo ifconfig > ifconfig.log
+
+echo 'Done!'

@@ -1,0 +1,8 @@
+#!/bin/bash
+
+sleep 1 
+
+echo "Connecting to remote host..."
+telnet $REMOTE_HOST 5000
+
+#wait_for_remote 
