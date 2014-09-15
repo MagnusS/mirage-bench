@@ -1,6 +1,6 @@
 mirage-bench
 ============
-This is a simple bash/make-based test framework that is intended for evaluating client/server applications. It is not ready for use.
+This is a simple bash/make-based test framework for evaluating client/server applications. It is not ready for use.
 
 ### Create a new test
 The test scripts are located in sub-directories with the following structure:
@@ -9,8 +9,6 @@ The test scripts are located in sub-directories with the following structure:
 test-group-name/
                 before_first_test
                 after_last_test
-                before_each_test
-                after_each_test
                 local/
                         local-test-A
                         local-test-B
@@ -28,7 +26,7 @@ In the example above, the executed test pairs will be:
     - local-test-B x remote-test-B
 
 
-The before_first_test and after_last_test scripts are executed before the first test and after the last test in the group. These scripts can be used to process results and generate graphs. The scripts before_each_test and after_each_test are automatically executed before and after each test-pair and can be used to perform general setup and cleanup operations.
+The before_first_test and after_last_test scripts are executed before the first test and after the last test in the group. These scripts can be used install dependencies or to process results and generate graphs. 
 
 When after_last_test is executed, all results should already have been gathered in /result/timestamp/test-group-name/local_test_x_remote_test/[local|remote]. The directories will also include stderr and stdout logs. 
 
@@ -49,12 +47,12 @@ The results directory has the following structure:
 
 ```
 results/
-        [tag/timestamp]/
-                        [test-group-name]/
-                                          [local_test_name]_x_[remote_test_name]/
-                                                                                 SUCCESS/FAILED
-                                                                                 remote/
-                                                                                        [logs]
-                                                                                 local/ 
-                                                                                        [logs]
+    [tag/timestamp]/
+        [test-group-name]/
+            [local_test_name]_x_[remote_test_name]/
+                SUCCESS/FAILED
+                remote/
+                    [logs]
+                local/ 
+                    [logs]
 ```
