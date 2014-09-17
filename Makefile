@@ -35,9 +35,10 @@ all:
 	@echo $(TESTS)
 	@echo
 	@echo "Other targets:"
-	@echo "sync_tests     sync test scripts with remote node (automatic before tests)"
-	@echo "sync_results   sync results from remote node (automatic after tests)"
-	@echo "clean_remote   sync test scripts and result, then delete results from remote node"
+	@echo "sync_tests     			sync test scripts with remote node (automatic before tests)"
+	@echo "sync_results   			sync results from remote node (automatic after tests)"
+	@echo "clean_remote   			sync test scripts and result, then delete results from remote node"
+	@echo "create name=[test-name]  create a new test directory structure in the [test-name] subdirectory (test- prefix required)"
 	@echo
 
 sync_tests:
@@ -51,6 +52,20 @@ sync_results:
 clean_remote: sync_results
 	# syncing tests with remote host, delete remote diff, delete results from remote
 	rsync -e "$(SSH)" --delete --delete-excluded --progress -qavz $(LOCAL_ROOT_PATH)/ $(REMOTE_USER)@$(REMOTE_HOST):$(REMOTE_ROOT_PATH) --exclude=results/
+
+create: 
+	@echo "Creating test in directory $(name)..."
+	@test \! -d $(name) || \
+		echo "$(name) already exists. Aborting"
+	@mkdir -p $(name)/local $(name)/remote
+	@echo "# About $(name) #\n\nThis is an empty example test.\n" > $(name)/README.md
+	@echo "#!/bin/bash\n\necho \"This script is executed locally before the tests\"\n" > $(name)/before_first_test_local
+	@echo "#!/bin/bash\n\necho \"This script is executed remotely before the tests\"\n" > $(name)/before_first_test_remote
+	@echo "#!/bin/bash\n\necho \"This script is executed locally after the tests\"\n" > $(name)/after_first_test_local
+	@echo "#!/bin/bash\n\necho \"This script is executed remotely after the tests\"\n" > $(name)/after_first_test_remote
+	@echo "#!/bin/bash\n\necho \"Remote test executing\"\nsleep 5\n" >> $(name)/remote/remote_test
+	@echo "#!/bin/bash\n\necho \"Local test executing (waiting for remote)\"\nwait_for_remote\n#kill_remote\n" > $(name)/local/local_test
+	@chmod +x $(name)/after* $(name)/before* $(name)/local/* $(name)/remote/*
 
 $(TESTS): sync_tests
 	# export all variables from make
