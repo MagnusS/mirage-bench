@@ -31,15 +31,17 @@ say_info () {
     echo -e "# INFO: $@"
 }
 
-# Wait for remote TCP port to open
-wait_for_remote_tcp_port_open () {
+# Wait for remote port to open
+wait_for_remote_port_open () {
+    PORT=$1
     echo "Waiting for port ${PORT} to open on remote host"
     ${SSH_EXEC} "while ! sudo lsof -i :${PORT} 2>&1 > /dev/null; do sleep 1; done;" && \
     echo "Remote opened port ${PORT}"
 }
 
 # Wait for remote TCP port to close
-wait_for_remote_tcp_port_close () {
+wait_for_remote_port_close () {
+    PORT=$1
     echo "Waiting for port ${PORT} to close on remote host"
     ${SSH_EXEC} "while sudo lsof -i :${PORT} 2>&1 > /dev/null; do sleep 1; done;" && \
     echo "Remote closed port ${PORT}"
@@ -63,7 +65,7 @@ kill_remote () {
     done
 }
 
-export -f wait_for_remote say_info say_warning say_error
+export -f wait_for_remote say_info say_warning say_error wait_for_remote_port_open wait_for_remote_port_close
 ### End of test script functions ###
 
 prefix_output () {
