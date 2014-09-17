@@ -15,7 +15,7 @@
 # OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
 # 
 
-set -eEu
+#set -eEu
 
 ### Functions available for test scripts ###
 say_error () {
@@ -81,19 +81,21 @@ local_run () {
     COMMAND="$@"
     date +"# %D, %T" >> ${LOG}
     echo "# Executing $COMMAND" >> ${LOG}
-    cd $dir && $COMMAND 2>&1 | tee -a ${LOG} | prefix_output "local"
+    cd $dir && $COMMAND 2>&1 | while read line ; do echo -e "local $(date +%H:%M:%S): $line"; echo $line >> ${LOG}; done
     unset dir COMMAND LOG
 }
 
-remote_run () {
+remote_run_bg () {
     dir=${REMOTE_RESULTS_PATH-$REMOTE_RESULTS_ROOT_PATH}
     LOG="${dir}/run_remote.log"
     COMMAND="$@"
     ${SSH_EXEC} "date +\"# %D, %T\" >> ${LOG}"
     ${SSH_EXEC} "echo \"# Executing ${COMMAND}\" >> ${LOG}"
-    ${SSH_EXEC} "cd $dir && ${COMMAND} 2>&1 | tee -a ${LOG}" | prefix_output "remote"
+    ${SSH_EXEC} "cd $dir && ${COMMAND} 2>&1 | while read line ; do echo -e \"remote \$(date +%H:%M:%S): \$line\"; echo \$line >> ${LOG}; done" &
+    REMOTE_PID=$!
     unset dir COMMAND LOG
 }
+
 
 run_tests () {
     local_test_paths=$(find "$LOCAL_TEST_ROOT_PATH/local" -type f -perm +111 -print)
@@ -157,10 +159,9 @@ run_tests () {
             mkdir -p $LOCAL_RESULTS_PATH || say_error "Unable to create local path $LOCAL_RESULTS_PATH"
 
             # run test
-            remote_run ${remote_tests[$j]} &
-            REMOTE_PID=$!
+            remote_run_bg ${remote_tests[$j]}
             REMOTE_PID=$REMOTE_PID local_run ${local_tests[$i]} && \
-            (say_info "TEST SUCCEEDED (continuing)"; date > $LOCAL_RESULTS_ROOT_PATH/$subtest_name/SUCCESS; success_count=$((success_count+1)); true) || \
+            (say_info "TEST COMPLETE (continuing)"; date > $LOCAL_RESULTS_ROOT_PATH/$subtest_name/SUCCESS; success_count=$((success_count+1)); true) || \
             (say_warning "TEST FAILED (continuing)" ; date > $LOCAL_RESULTS_ROOT_PATH/$subtest_name/FAILED; failed_count=$((failed_count+1)); true)
             # kill remote if still running
             kill_remote
@@ -172,17 +173,18 @@ run_tests () {
     done
 
     say_info "$total_count tests complete. Success: $success_count, failure: $failed_count"
-    [ $failed_count -gt 0 ] && say_warning "Some tests failed" || true
-}
-
-cleanup () {
-    # kill remote command if still running on exit (e.g. due to ctrl-c being pressed, or unexpected error)
-    if [ "${REMOTE_PID-x}" != "x" ]; then 
-        kill $REMOTE_PID
+    if [ $failed_count -gt 0 ]; then
+        say_warning "Some tests failed"
     fi
 }
-trap cleanup EXIT 
-trap cleanup SIGHUP
+cleanup () {
+    # kill remote command if still running on exit (e.g. due to ctrl-c being pressed, or unexpected error)
+    if [ "${REMOTE_PID-x}" != "x" ]; then
+        echo "Terminating background job with pid $REMOTE_PID"
+        kill $REMOTE_PID && wait $REMOTE_PID
+    fi
+}
+trap cleanup SIGINT EXIT
 
 ### Run tests ###
 say_info "Running ${TEST_NAME}... (results tagged with ${RESULTS_TAG}, set RESULTS_TAG to override)"
