@@ -61,8 +61,8 @@ create:
 	@echo "# About $(name) #\n\nThis is an empty example test.\n" > $(name)/README.md
 	@echo "#!/bin/bash\n\necho \"This script is executed locally before the tests\"\n" > $(name)/before_first_test_local
 	@echo "#!/bin/bash\n\necho \"This script is executed remotely before the tests\"\n" > $(name)/before_first_test_remote
-	@echo "#!/bin/bash\n\necho \"This script is executed locally after the tests\"\n" > $(name)/after_first_test_local
-	@echo "#!/bin/bash\n\necho \"This script is executed remotely after the tests\"\n" > $(name)/after_first_test_remote
+	@echo "#!/bin/bash\n\necho \"This script is executed locally after the tests\"\n" > $(name)/after_last_test_local
+	@echo "#!/bin/bash\n\necho \"This script is executed remotely after the tests\"\n" > $(name)/after_last_test_remote
 	@echo "#!/bin/bash\n\necho \"Remote test executing\"\nsleep 5\n" >> $(name)/remote/remote_test
 	@echo "#!/bin/bash\n\necho \"Local test executing (waiting for remote)\"\nwait_for_remote\n#kill_remote\n" > $(name)/local/local_test
 	@chmod +x $(name)/after* $(name)/before* $(name)/local/* $(name)/remote/*
