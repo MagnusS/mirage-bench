@@ -94,7 +94,7 @@ $(TESTS): sync_time sync_tests
 	./run_test.sh
 
 	# sync results, clean up
-	make sync_results 
+	make clean_remote
 
 	test -x "$(LOCAL_TEST_ROOT_PATH)/after_last_test_remote" && ${SSH_EXEC} "cd $(REMOTE_RESULTS_ROOT_PATH) && $(REMOTE_TEST_ROOT_PATH)/after_last_test_remote 2>&1 | tee -a run_remote.log" || true
 	
