@@ -32,15 +32,26 @@ say_info () {
 }
 
 # Wait for remote TCP port to open
-#wait_for_remote_tcp_port () {
-#}
+wait_for_remote_tcp_port_open () {
+    echo "Waiting for port ${PORT} to open on remote host"
+    ${SSH_EXEC} "while ! sudo lsof -i :${PORT} 2>&1 > /dev/null; do sleep 1; done;" && \
+    echo "Remote opened port ${PORT}"
+}
+
+# Wait for remote TCP port to close
+wait_for_remote_tcp_port_close () {
+    echo "Waiting for port ${PORT} to close on remote host"
+    ${SSH_EXEC} "while sudo lsof -i :${PORT} 2>&1 > /dev/null; do sleep 1; done;" && \
+    echo "Remote closed port ${PORT}"
+}
 
 # Wait for remote test to complete
 wait_for_remote () {
+    echo "Waiting for remote to exit..."
     while kill -0 $REMOTE_PID 2> /dev/null ; do
-        echo "Waiting for remote to exit..."
         sleep 1
     done
+    echo "Remote exited."
 }
 
 # Kill remote test
