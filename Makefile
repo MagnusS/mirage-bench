@@ -93,12 +93,13 @@ $(TESTS): sync_time sync_tests
 
 	./run_test.sh
 
-	# sync results, clean up
-	make clean_remote
-
+	# execute after_last_test_remote if it exists (results are still on the remote node so after_last_test_remote can process them)
 	test -x "$(LOCAL_TEST_ROOT_PATH)/after_last_test_remote" && ${SSH_EXEC} "cd $(REMOTE_RESULTS_ROOT_PATH) && $(REMOTE_TEST_ROOT_PATH)/after_last_test_remote 2>&1 | tee -a run_remote.log" || true
 	
-	# execute after_last_test if it exists
+	# sync results and delete them from remote
+	make clean_remote
+	
+	# execute after_last_test_local if it exists
 	test -x "$(LOCAL_TEST_ROOT_PATH)/after_last_test_local" && cd $(LOCAL_RESULTS_ROOT_PATH) && "$(LOCAL_TEST_ROOT_PATH)/after_last_test_local" 2>&1 | tee -a run_local.log || true
 
 	@echo "Test $(TEST_NAME) complete. Results stored in $(LOCAL_RESULTS_ROOT_PATH)"
