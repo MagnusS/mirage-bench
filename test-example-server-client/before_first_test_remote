@@ -1,0 +1,7 @@
+#!/bin/bash
+
+echo "This script is executed remotely before the tests"
+echo "Installing dependencies on remote node"
+
+sudo apt-get install -y netcat --no-install-recommends
+
