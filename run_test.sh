@@ -31,6 +31,11 @@ say_info () {
     echo -e "# INFO: $@"
 }
 
+# Wait for remote TCP port to open
+#wait_for_remote_tcp_port () {
+#}
+
+# Wait for remote test to complete
 wait_for_remote () {
     while kill -0 $REMOTE_PID 2> /dev/null ; do
         echo "Waiting for remote to exit..."
@@ -38,6 +43,7 @@ wait_for_remote () {
     done
 }
 
+# Kill remote test
 kill_remote () {
     while kill -0 $REMOTE_PID 2> /dev/null ; do
         echo "Remote still running, sending SIGHUP..."

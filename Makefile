@@ -68,17 +68,21 @@ $(TESTS): sync_tests
 	mkdir -p $(LOCAL_RESULTS_ROOT_PATH)
 
 	# execute before_first_test if it exists
-	test -x "$(LOCAL_TEST_ROOT_PATH)/before_first_test" && \
-	cd $(LOCAL_RESULTS_ROOT_PATH) && \
-	"$(LOCAL_TEST_ROOT_PATH)/before_first_test" >> run_local.log
+	test -x "$(LOCAL_TEST_ROOT_PATH)/before_first_test_local" && \
+	cd $(LOCAL_RESULTS_ROOT_PATH) && "$(LOCAL_TEST_ROOT_PATH)/before_first_test_local" >> run_local.log
+
+	test -x "$(LOCAL_TEST_ROOT_PATH)/before_first_test_remote" && \
+	${SSH_EXEC} "cd $(REMOTE_RESULTS_ROOT_PATH) && $(REMOTE_TEST_ROOT_PATH)/before_first_test_remote >> run_remote.log"
 
 	./run_test.sh
 
 	# sync results, clean up
 	make sync_results 
+
+	test -x "$(LOCAL_TEST_ROOT_PATH)/after_last_test_remote" && \
+	${SSH_EXEC} "cd $(REMOTE_RESULTS_ROOT_PATH) && $(REMOTE_TEST_ROOT_PATH)/after_last_test_remote >> run_remote.log"
 	
 	# execute after_last_test if it exists
-	test -x "$(LOCAL_TEST_ROOT_PATH)/after_last_test" && \
-	cd $(LOCAL_RESULTS_ROOT_PATH) && \
-	"$(LOCAL_TEST_ROOT_PATH)/after_last_test" >> run_local.log
+	test -x "$(LOCAL_TEST_ROOT_PATH)/after_last_test_local" && \
+	cd $(LOCAL_RESULTS_ROOT_PATH) && "$(LOCAL_TEST_ROOT_PATH)/after_last_test_local" >> run_local.log
 
