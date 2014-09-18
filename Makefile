@@ -23,7 +23,7 @@ REMOTE_ROOT_PATH=/home/mirage/mirage-bench/
 LOCAL_ROOT_PATH=$(shell pwd)
 
 SSH=ssh -p $(REMOTE_PORT) -o VisualHostKey=no -o BatchMode=yes
-SSH_EXEC=$(SSH) $(REMOTE_USER)@$(REMOTE_HOST) "set -o pipefail;"
+SSH_EXEC=$(SSH) $(REMOTE_USER)@$(REMOTE_HOST)
 TESTS=$(shell ls -A1d test-*)
 
 .PHONY: all sync_tests sync_results clean clean_remote sync_time $(TESTS)
@@ -86,16 +86,17 @@ $(TESTS): sync_time sync_tests
 	$(eval LOCAL_TEST_ROOT_PATH=$(LOCAL_ROOT_PATH)/$(TEST_NAME))
 	$(eval LOCAL_RESULTS_ROOT_PATH=$(LOCAL_ROOT_PATH)/results/$(RESULTS_TAG)/$(TEST_NAME))
 	mkdir -p $(LOCAL_RESULTS_ROOT_PATH)
+	set -o pipefail
 
 	# execute before_first_test if it exists
 	test -x "$(LOCAL_TEST_ROOT_PATH)/before_first_test_local" && cd $(LOCAL_RESULTS_ROOT_PATH) && "$(LOCAL_TEST_ROOT_PATH)/before_first_test_local" 2>&1 | tee -a run_local.log
 
-	test -x "$(LOCAL_TEST_ROOT_PATH)/before_first_test_remote" && ${SSH_EXEC} "cd $(REMOTE_RESULTS_ROOT_PATH) && $(REMOTE_TEST_ROOT_PATH)/before_first_test_remote 2>&1 | tee -a run_remote.log"
+	test -x "$(LOCAL_TEST_ROOT_PATH)/before_first_test_remote" && ${SSH_EXEC} "set -o pipefail ; cd $(REMOTE_RESULTS_ROOT_PATH) && $(REMOTE_TEST_ROOT_PATH)/before_first_test_remote 2>&1 | tee -a run_remote.log"
 
 	./run_test.sh
 
 	# execute after_last_test_remote if it exists (results are still on the remote node so after_last_test_remote can process them)
-	test -x "$(LOCAL_TEST_ROOT_PATH)/after_last_test_remote" && ${SSH_EXEC} "cd $(REMOTE_RESULTS_ROOT_PATH) && $(REMOTE_TEST_ROOT_PATH)/after_last_test_remote 2>&1 | tee -a run_remote.log"
+	test -x "$(LOCAL_TEST_ROOT_PATH)/after_last_test_remote" && ${SSH_EXEC} "set -o pipefail ; cd $(REMOTE_RESULTS_ROOT_PATH) && $(REMOTE_TEST_ROOT_PATH)/after_last_test_remote 2>&1 | tee -a run_remote.log"
 	
 	# sync results and delete them from remote
 	make clean_remote
