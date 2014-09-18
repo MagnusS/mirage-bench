@@ -17,6 +17,8 @@
 
 #set -eEu
 
+set -o pipefail
+
 ### Functions available for test scripts ###
 say_error () {
     echo -e "# FATAL: $@"
