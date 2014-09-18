@@ -49,9 +49,6 @@ The before_first_test\* and after_last_test\* scripts are executed before the fi
 
 When after_last_test\* is executed, all results should already have been gathered in /result/timestamp/test-group-name/local_test_x_remote_test/[local|remote]. The directories will also include stderr and stdout logs. 
 
-### Test script environment
-Each test-script is executed in its result directory. Anything stored in this directory is gathered by the test framework when the test completes.
-
 The results directory has the following structure:
 
 ```
@@ -65,6 +62,9 @@ results/
                 local/ 
                     [logs]
 ```
+
+### Test script environment
+Each test-script is executed in its result directory. Anything stored in this directory is gathered by the test framework when the test completes.
 
 If the tests are run multiple times within each test script, the script should create the appropriate directory structure within the directory it is executing in (cwd) - for example by creating 1,2,3 etc as subdirectories.
 
