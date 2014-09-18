@@ -2,6 +2,22 @@ mirage-bench
 ============
 This is a simple bash/make-based test framework for evaluating client/server applications. It is not ready for use.
 
+### Cubieboard/remote setup ###
+
+1. Use [xen-arm-builder](https://github.com/mirage/xen-arm-builder) to create cubieboard boot image.
+
+2. On the cubieboard, add your ssh public key to ~/.ssh/authorized_keys for the mirage user to disable password on login. The mirage user must also be able to sudo without a password.
+
+3. Install mirage 2.0 on cubieboard:
+
+```
+opam remote add mirage-dev git://github.com/mirage/mirage-dev
+```
+
+4. (optional) Set up libvirt with libxl-support. Use install script in /root/scripts/install_libvirt.sh
+
+5. (optional) Install Linux guest. Use install script in /root/scripts/make_linux_guest.sh
+
 ### Create a new test
 The test scripts are located in sub-directories with the following structure:
 
