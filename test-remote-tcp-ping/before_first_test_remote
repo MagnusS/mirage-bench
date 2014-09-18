@@ -1,6 +1,0 @@
-#!/bin/bash
-
-#MIRAGE_VER=2.0.0
-#opam list mirage | grep $MIRAGE_VER && echo "Mirage $MIRAGE_VER found" || echo "Mirage = $MIRAGE_VER required" && exit -1
-
-sudo apt-get install hping3 coreutils -y

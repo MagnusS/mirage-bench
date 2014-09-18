@@ -1,0 +1,9 @@
+#!/bin/bash
+
+echo "This script is executed remotely after the tests"
+
+cd unikernel && \
+mirage clean && \
+rm -f mir-www.* unikernel.xl
+
+sudo xl destroy test-unikernel

@@ -13,6 +13,7 @@ This is a simple bash/make-based test framework for evaluating client/server app
 ```
 opam remote add mirage-dev git://github.com/mirage/mirage-dev
 ```
+... or follow instructions from [here](http://openmirage.org/blog/introducing-xen-minios-arm).
 
 4. (optional) Set up libvirt with libxl-support. Use install script in /root/scripts/install_libvirt.sh
 
