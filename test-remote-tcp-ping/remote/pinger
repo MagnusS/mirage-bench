@@ -1,0 +1,29 @@
+#!/bin/bash
+
+HOSTS="www.google.com www.openmirage.org blobs.openmirage.org"
+REPS=5
+PINGS=10
+
+# send $PINGS ICMP packets to each host $REPS times. 
+
+for rep in $(seq 1 $REPS); do
+    date
+    echo "Repetition $rep of $REPS"
+
+    for host in $HOSTS; do
+        echo "==== $host ===="
+
+        echo "Pinging..."
+        date | tee -a ${host}_icmp.log
+        # use stdbuf to set output line buffered
+        sudo stdbuf -o L hping3 -1 -c $PINGS $host | tee -a ${host}_icmp.log
+
+        #echo "Synding syn/ack to port 80..."
+        #date | tee -a ${host}_synack.log
+        #sudo stdbuf -o L hping3 -SA -c $PINGS -p 80 $host | tee -a ${host}_synack.log
+
+        #echo "Sending syn to port 80..."
+        #date | tee -a ${host}_syn.log
+        #sudo stdbuf -o L hping3 -S -c $PINGS -p 80 $host | tee -a ${host}_syn.log
+    done
+done

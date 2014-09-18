@@ -1,0 +1,6 @@
+#!/bin/bash
+
+echo "Local test executing (waiting for remote)"
+wait_for_remote
+#kill_remote
+
