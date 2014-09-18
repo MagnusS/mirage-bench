@@ -1,29 +1,45 @@
 #!/bin/bash
 
-HOSTS="www.google.com www.openmirage.org blobs.openmirage.org"
+# if internet sharing is used to set IPs from macbook, these IPs should be correct
+# 192.168.2.1 - macbook
+# 192.168.2.10 - unikernel
+
+UNIKERNEL_IP=192.168.2.10
+# get IP of local node from lastlog
+LOCAL_IP=$(lastlog | grep mirage | cut -b27-42)
+
+HOSTS="$LOCAL_IP $UNIKERNEL_IP localhost www.openmirage.org blobs.openmirage.org"
 REPS=5
 PINGS=10
+SIZE="56 128 512 1024 8192 16384 32768 65507"
+
 
 # send $PINGS ICMP packets to each host $REPS times. 
+
+echo "Pinging $HOSTS"
 
 for rep in $(seq 1 $REPS); do
     date
     echo "Repetition $rep of $REPS"
 
-    for host in $HOSTS; do
-        echo "==== $host ===="
+    for size in $SIZE; do
+        for host in $HOSTS; do
+            echo "==== $host ===="
 
-        echo "Pinging..."
-        date | tee -a ${host}_icmp.log
-        # use stdbuf to set output line buffered
-        sudo stdbuf -o L hping3 -1 -c $PINGS $host | tee -a ${host}_icmp.log
+            echo "Pinging..."
+            date | tee -a ${host}_${size}_icmp.log
+            sudo ping -c $PINGS -s $size $host | tee ${host}_${size}_icmp.log
 
-        #echo "Synding syn/ack to port 80..."
-        #date | tee -a ${host}_synack.log
-        #sudo stdbuf -o L hping3 -SA -c $PINGS -p 80 $host | tee -a ${host}_synack.log
+            # use stdbuf to set output line buffered
+            #sudo stdbuf -o L hping3 -1 -c $PINGS $host | tee -a ${host}_icmp.log
 
-        #echo "Sending syn to port 80..."
-        #date | tee -a ${host}_syn.log
-        #sudo stdbuf -o L hping3 -S -c $PINGS -p 80 $host | tee -a ${host}_syn.log
+            #echo "Synding syn/ack to port 80..."
+            #date | tee -a ${host}_synack.log
+            #sudo stdbuf -o L hping3 -SA -c $PINGS -p 80 $host | tee -a ${host}_synack.log
+
+            #echo "Sending syn to port 80..."
+            #date | tee -a ${host}_syn.log
+            #sudo stdbuf -o L hping3 -S -c $PINGS -p 80 $host | tee -a ${host}_syn.log
+        done
     done
 done
