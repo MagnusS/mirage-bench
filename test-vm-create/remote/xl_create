@@ -1,0 +1,34 @@
+#!/bin/bash
+
+TEST_PATH=$(dirname $0)
+REPS=10
+
+MEM_SIZES="16 32 64 128 256"
+unikernel=$TEST_PATH/../unikernel/mir-www.xen
+
+echo "Generating config files..."
+for mem in 16 32 64 128 256; do
+    filename="unikernel_${mem}.xl"
+    echo $filename
+    echo "name = 'test-unikernel'
+    kernel = '$unikernel'
+    builder = 'linux'
+    memory = ${mem}
+    on_crash = 'preserve'
+    vif = [ 'mac=c0:ff:ee:c0:ff:ee,bridge=br0' ]" > $filename
+done
+
+sudo xl destroy test-unikernel || true
+sleep 1
+
+for r in $(seq 1 $REPS); do
+    for f in ${TEST_PATH}/unikernel*.xl; do
+        echo $f
+        mem=$(cat $f | grep memory | cut -f 2 -d "=" | tr -d " ")
+        echo "memory=$mem"
+        date >> create_${mem}.log
+        sudo -s time -p xl create $f 2>&1 | tee -a create_${mem}.log
+        sudo xl destroy test-unikernel
+        sleep 2
+    done
+done

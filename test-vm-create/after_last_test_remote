@@ -1,0 +1,5 @@
+#!/bin/bash
+
+echo "This script is executed remotely after the tests"
+
+sudo xl destroy test-unikernel || true
