@@ -1,0 +1,17 @@
+#!/bin/bash
+
+MYPATH=`dirname $0`
+
+python $MYPATH/read_files.py
+
+exit 0
+
+for t in wait_x_*; do
+    echo $t;
+
+    for f in $t/remote/create_*.log; do
+        echo $f
+
+        cat $f | grep real | cut -f 2 -d" " | python $MYPATH/calc.py
+    done
+done
