@@ -22,6 +22,7 @@ RESULTS_TAG?=$(shell date +%d%m%y-%H%M%S)
 REMOTE_ROOT_PATH=/home/mirage/mirage-bench/
 LOCAL_ROOT_PATH=$(shell pwd)
 
+NTP_SERVER=ntp0.csx.cam.ac.uk
 SSH_OPT=-o VisualHostKey=no -o BatchMode=yes
 SSH=ssh -p $(REMOTE_PORT) $(SSH_OPT)
 SCP=scp -P $(REMOTE_PORT) $(SSH_OPT)
@@ -76,7 +77,7 @@ create:
 
 sync_time:
 	# synchronize remote time and test internet access
-	${SSH_EXEC} "sudo ntpdate fartein.ifi.uio.no"
+	${SSH_EXEC} "sudo ntpdate $(NTP_SERVER)"
 
 run: | sync_time sync_tests
 	# export all variables from make
