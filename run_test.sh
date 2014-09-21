@@ -67,7 +67,7 @@ kill_remote () {
     done
 }
 
-export -f wait_for_remote say_info say_warning say_error wait_for_remote_port_open wait_for_remote_port_close
+export -f wait_for_remote say_info say_warning say_error wait_for_remote_port_open wait_for_remote_port_close kill_remote
 ### End of test script functions ###
 
 prefix_output () {
@@ -93,7 +93,7 @@ remote_run_bg () {
     COMMAND="$@"
     ${SSH_EXEC} "date +\"# %D, %T\" >> ${LOG}"
     ${SSH_EXEC} "echo \"# Executing ${COMMAND}\" >> ${LOG}"
-    ${SSH_EXEC} "set -o pipefail ; source $REMOTE_RESULTS_ROOT_PATH/remote_environment; cd $dir && ${COMMAND} 2>&1 | while read line ; do echo -e \"remote \$(date +%H:%M:%S): \$line\"; echo \$line >> ${LOG}; done" &
+    ${SSH_EXEC} "set -o pipefail ; shopt -s huponexit; source $REMOTE_RESULTS_ROOT_PATH/remote_environment; cd $dir && ${COMMAND} 2>&1 | while read line ; do echo -e \"remote \$(date +%H:%M:%S): \$line\"; echo \$line >> ${LOG}; done" &
     REMOTE_PID=$!
     unset dir COMMAND LOG
 }
