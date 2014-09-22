@@ -29,6 +29,8 @@ UNIKERNEL_MAC5=de:ad:bb:ee:ee:ee
 UNIKERNEL_NETMASK=255.255.255.0
 UNIKERNEL_GW=10.0.1.1
 
+SHELL=/bin/bash
+
 # RESULTS_TAG should be unique for each run - the name of the results-subdir
 RESULTS_TAG?=$(shell date +%d%m%y-%H%M%S)
 
