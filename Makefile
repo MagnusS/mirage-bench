@@ -16,6 +16,19 @@ REMOTE_HOST = cubieboard2.local
 REMOTE_USER = mirage
 REMOTE_PORT ?= 22
 
+UNIKERNEL_IP1=10.0.1.140
+UNIKERNEL_MAC1=c0:ff:ee:c0:ff:ee
+UNIKERNEL_IP2=10.0.1.141
+UNIKERNEL_MAC2=c0:ff:ee:bb:ee:ff
+UNIKERNEL_IP3=10.0.1.142
+UNIKERNEL_MAC3=c0:ff:ee:ee:ee:ee
+UNIKERNEL_IP4=10.0.1.143
+UNIKERNEL_MAC4=de:ad:bb:ee:ee:ff
+UNIKERNEL_IP5=10.0.1.144
+UNIKERNEL_MAC5=de:ad:bb:ee:ee:ee
+UNIKERNEL_NETMASK=255.255.255.0
+UNIKERNEL_GW=10.0.1.1
+
 # RESULTS_TAG should be unique for each run - the name of the results-subdir
 RESULTS_TAG?=$(shell date +%d%m%y-%H%M%S)
 
@@ -99,6 +112,19 @@ run: | sync_time sync_tests
 	rm -f $(LOCAL_RESULTS_ROOT_PATH)/local_environment
 	echo "export TEST=$(TEST)" >> $(LOCAL_RESULTS_ROOT_PATH)/local_environment
 	echo "export RESULTS_TAG=$(RESULTS_TAG)" >> $(LOCAL_RESULTS_ROOT_PATH)/local_environment
+	echo "export REMOTE_HOST=$(REMOTE_HOST)" >> $(LOCAL_RESULTS_ROOT_PATH)/local_environment
+	echo "export UNIKERNEL_IP1=$(UNIKERNEL_IP1)" >> $(LOCAL_RESULTS_ROOT_PATH)/local_environment
+	echo "export UNIKERNEL_IP2=$(UNIKERNEL_IP2)" >> $(LOCAL_RESULTS_ROOT_PATH)/local_environment
+	echo "export UNIKERNEL_IP3=$(UNIKERNEL_IP3)" >> $(LOCAL_RESULTS_ROOT_PATH)/local_environment
+	echo "export UNIKERNEL_IP4=$(UNIKERNEL_IP4)" >> $(LOCAL_RESULTS_ROOT_PATH)/local_environment
+	echo "export UNIKERNEL_IP5=$(UNIKERNEL_IP5)" >> $(LOCAL_RESULTS_ROOT_PATH)/local_environment
+	echo "export UNIKERNEL_MAC1=$(UNIKERNEL_MAC1)" >> $(LOCAL_RESULTS_ROOT_PATH)/local_environment
+	echo "export UNIKERNEL_MAC2=$(UNIKERNEL_MAC2)" >> $(LOCAL_RESULTS_ROOT_PATH)/local_environment
+	echo "export UNIKERNEL_MAC3=$(UNIKERNEL_MAC3)" >> $(LOCAL_RESULTS_ROOT_PATH)/local_environment
+	echo "export UNIKERNEL_MAC4=$(UNIKERNEL_MAC4)" >> $(LOCAL_RESULTS_ROOT_PATH)/local_environment
+	echo "export UNIKERNEL_MAC5=$(UNIKERNEL_MAC5)" >> $(LOCAL_RESULTS_ROOT_PATH)/local_environment
+	echo "export UNIKERNEL_NETMASK=$(UNIKERNEL_NETMASK)" >> $(LOCAL_RESULTS_ROOT_PATH)/local_environment
+	echo "export UNIKERNEL_GW=$(UNIKERNEL_GW)" >> $(LOCAL_RESULTS_ROOT_PATH)/local_environment
 	echo "export LOCAL_RESULTS_ROOT_PATH=$(LOCAL_RESULTS_ROOT_PATH)" >> $(LOCAL_RESULTS_ROOT_PATH)/local_environment
 	echo "export LOCAL_TEST_ROOT_PATH=$(LOCAL_TEST_ROOT_PATH)" >> $(LOCAL_RESULTS_ROOT_PATH)/local_environment
 	echo "export LOCAL_ROOT_PATH=$(LOCAL_ROOT_PATH)" >> $(LOCAL_RESULTS_ROOT_PATH)/local_environment
@@ -139,7 +165,7 @@ graphs:
 	$(eval LOCAL_RESULTS_ROOT_PATH=$(LOCAL_ROOT_PATH)/results/$(RESULTS_TAG)/$(TEST))
 
 	@test -f $(LOCAL_RESULTS_ROOT_PATH)/local_environment || (echo "Result not found for test $(TEST). Valid options for RESULT= are:"; \
-		find results | grep test-vm-create | grep local_environment | cut -f2 -d"/"; \
+		find results | grep $(TEST) | grep local_environment | cut -f2 -d"/"; \
 		exit -1)
 
 	@echo "Creating graphs for $(LOCAL_RESULTS_ROOT_PATH)..."
