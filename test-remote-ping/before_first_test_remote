@@ -10,6 +10,14 @@ eval `opam config env`
 sudo apt-get install hping3 coreutils -y
 
 cd $TEST_PATH/unikernel && \
+cat config.tmpl | \
+sed "s/\$UNIKERNEL_IP1/$UNIKERNEL_IP1/g" | \
+sed "s/\$UNIKERNEL_IP2/$UNIKERNEL_IP2/g" | \
+sed "s/\$UNIKERNEL_IP3/$UNIKERNEL_IP3/g" | \
+sed "s/\$UNIKERNEL_IP4/$UNIKERNEL_IP4/g" | \
+sed "s/\$UNIKERNEL_IP5/$UNIKERNEL_IP5/g" | \
+sed "s/\$UNIKERNEL_GW/$UNIKERNEL_GW/g" | \
+sed "s/\$UNIKERNEL_NETMASK/$UNIKERNEL_NETMASK/g" > config.ml && \
 mirage clean && \
 mirage configure --xen && \
 cat Makefile | sed "s#-lbigarray#-lbigarray -L/usr/lib/arm-linux-gnueabihf#g" > Makefile.2 && \
@@ -25,7 +33,7 @@ kernel = '$unikernel'
 builder = 'linux'
 memory = 16
 on_crash = 'preserve'
-vif = [ 'mac=c0:ff:ee:c0:ff:ee,bridge=br0' ]" >> unikernel.xl
+vif = [ 'mac=${UNIKERNEL_MAC1},bridge=br0' ]" >> unikernel.xl
 
 sudo xl destroy test-unikernel
 sudo xl create unikernel.xl
