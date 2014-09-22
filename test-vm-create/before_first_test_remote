@@ -1,17 +1,24 @@
 #!/bin/bash
 
 TEST_PATH=$(dirname $0)
-export
 
 eval `opam config env`
 
-#MIRAGE_VER=2.0.0
-#opam list mirage | grep $MIRAGE_VER && echo "Mirage $MIRAGE_VER found" || echo "Mirage = $MIRAGE_VER required" && exit -1
-opam list mirage | grep mirage && echo "Mirage found" || exit -1
+MIRAGE_VER=2.0.0
+echo "This test requires $MIRAGE_VER"
+opam list mirage | grep $MIRAGE_VER && echo "Mirage $MIRAGE_VER found" || exit -1
 
 sudo apt-get install hping3 coreutils -y
 
 cd $TEST_PATH/unikernel && \
+cat config.tmpl | \
+sed "s/\$UNIKERNEL_IP1/$UNIKERNEL_IP1/g" | \
+sed "s/\$UNIKERNEL_IP2/$UNIKERNEL_IP2/g" | \
+sed "s/\$UNIKERNEL_IP3/$UNIKERNEL_IP3/g" | \
+sed "s/\$UNIKERNEL_IP4/$UNIKERNEL_IP4/g" | \
+sed "s/\$UNIKERNEL_IP5/$UNIKERNEL_IP5/g" | \
+sed "s/\$UNIKERNEL_GW/$UNIKERNEL_GW/g" | \
+sed "s/\$UNIKERNEL_NETMASK/$UNIKERNEL_NETMASK/g" > config.ml && \
 mirage clean && \
 mirage configure --xen && \
 cat Makefile | sed "s#-lbigarray#-lbigarray -L/usr/lib/arm-linux-gnueabihf#g" > Makefile.2 && \
