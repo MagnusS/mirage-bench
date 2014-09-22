@@ -3,9 +3,10 @@
 TEST_PATH=$(dirname $0)
 RESULT_PATH=$(pwd)
 
-#MIRAGE_VER=2.0.0
-#opam list mirage | grep $MIRAGE_VER && echo "Mirage $MIRAGE_VER found" || echo "Mirage = $MIRAGE_VER required" && exit -1
-opam list mirage | grep mirage && echo "Mirage found" || exit -1
+MIRAGE_VER=2.0.0
+echo "This test requires $MIRAGE_VER"
+opam list mirage | grep $MIRAGE_VER && echo "Mirage $MIRAGE_VER found" || exit -1
+
 eval `opam config env`
 
 sudo apt-get install hping3 coreutils avahi-utils -y

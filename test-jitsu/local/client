@@ -2,6 +2,7 @@
 
 TEST_PATH=$(dirname $0)
 RESULT_PATH=$(pwd)
+hostinfo | grep Darwin && IN_OSX=1 || IN_OSX=0
 
 REPS=100
 
@@ -20,15 +21,22 @@ echo "remote ip is $REMOTE_IP"
 LOCAL_IP=$(${SSH_EXEC} "lastlog | grep mirage | cut -b27-42")
 echo "local ip is $LOCAL_IP"
 
-# this only works in osx, see ip route get x.x.x.x in linux
-IF=$(route -n get $REMOTE_IP | grep interface | cut -d":" -f2 | tr -d " ")
+if [ $IN_OSX == 1 ]; then
+	# this only works in osx, see ip route get x.x.x.x in linux
+	IF=$(route -n get $REMOTE_IP | grep interface | cut -d":" -f2 | tr -d " ")
+	TCPDUMP=tcpdump
+else # linux
+	IF=$(ip route get 10.0.1.140 | grep dev | cut -f 3 -d " " | tr -d ' ')
+	TCPDUMP="sudo tcpdump"
+fi
+
 echo "using interface $IF"
 
 unikernel_counter=0
 for f in $(seq 1 $REPS); do
     unikernel_counter=$(($unikernel_counter % 5 + 1))
     echo "Repetition $f of $REPS"
-    tcpdump -ni $IF -s 1024 -w $RESULT_PATH/dump_${f}.pcap -U \
+    $TCPDUMP -ni $IF -s 1024 -w $RESULT_PATH/dump_${f}.pcap -U \
         "(port 53 or port 80) and 
          ( (src $REMOTE_IP and dst $LOCAL_IP) or 
          (src $LOCAL_IP and dst $REMOTE_IP) or
@@ -42,12 +50,14 @@ for f in $(seq 1 $REPS); do
          (src $LOCAL_IP and dst $UNIKERNEL_IP3) or
          (src $LOCAL_IP and dst $UNIKERNEL_IP4) or
          (src $LOCAL_IP and dst $UNIKERNEL_IP5))" &
-    TCPDUMP=$!
+    TCPDUMP_PID=$!
+
+    sleep 1 # give tcpdump time to start
 
     python $TEST_PATH/query_and_connect.py $REMOTE_IP www.unikernel${unikernel_counter}.com
-    sleep 1
+    sleep 3
 
-    sudo kill $TCPDUMP
+    sudo kill $TCPDUMP_PID
 
     echo "Libvirt status:"
     ${SSH_EXEC} "sudo virsh list --all"
@@ -60,7 +70,6 @@ for f in $(seq 1 $REPS); do
     echo "Libvirt status:"
     ${SSH_EXEC} "sudo virsh list --all"
 
-    sleep 3
 done
 
 kill_remote

@@ -22,7 +22,9 @@ for rdata in answer:
 
 sock = socket.socket()
 sock.connect((ip, port))
+print "Connected. Shutting down socket..."
+sock.shutdown(1)
 sock.close()
 
-print "Connect/disconnect to ip",ip,"port",port
+print "Connect/disconnect to ip",ip,"port",port,"done"
 
