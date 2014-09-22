@@ -1,0 +1,11 @@
+#!/bin/bash
+
+echo "This script is executed locally before the tests"
+
+echo "Set /dev/bpf* o+r to allow tcpdump from ordinary user. This is reset on reboot. Requires sudo:"
+sudo chmod o+r /dev/bpf*
+
+pip list | grep dnspython && \
+    echo "dnspython installed" || \
+    (echo "Installing dnspython with pip (requires sudo)" && \
+    sudo pip install dnspython)

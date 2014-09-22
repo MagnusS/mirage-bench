@@ -1,0 +1,67 @@
+#!/bin/bash
+
+TEST_PATH=$(dirname $0)
+RESULT_PATH=$(pwd)
+
+REPS=100
+
+echo "Local test executing"
+
+echo "Wait for remote to open DNS port"
+wait_for_remote_port_open 53
+sleep 1
+
+${SSH_EXEC} "sudo virsh list --all"
+
+# use ping to get remote IP, works for mdns + dns
+REMOTE_IP=$(ping -c1 $REMOTE_HOST | head -n1 | cut -f2 -d"(" | cut -f1 -d")")
+echo "remote ip is $REMOTE_IP"
+
+LOCAL_IP=$(${SSH_EXEC} "lastlog | grep mirage | cut -b27-42")
+echo "local ip is $LOCAL_IP"
+
+# this only works in osx, see ip route get x.x.x.x in linux
+IF=$(route -n get $REMOTE_IP | grep interface | cut -d":" -f2 | tr -d " ")
+echo "using interface $IF"
+
+unikernel_counter=0
+for f in $(seq 1 $REPS); do
+    unikernel_counter=$(($unikernel_counter % 5 + 1))
+    echo "Repetition $f of $REPS"
+    tcpdump -ni $IF -s 1024 -w $RESULT_PATH/dump_${f}.pcap -U \
+        "(port 53 or port 80) and 
+         ( (src $REMOTE_IP and dst $LOCAL_IP) or 
+         (src $LOCAL_IP and dst $REMOTE_IP) or
+         (src $UNIKERNEL_IP1 and dst $LOCAL_IP) or
+         (src $UNIKERNEL_IP2 and dst $LOCAL_IP) or
+         (src $UNIKERNEL_IP3 and dst $LOCAL_IP) or
+         (src $UNIKERNEL_IP4 and dst $LOCAL_IP) or
+         (src $UNIKERNEL_IP5 and dst $LOCAL_IP) or
+         (src $LOCAL_IP and dst $UNIKERNEL_IP1) or
+         (src $LOCAL_IP and dst $UNIKERNEL_IP2) or
+         (src $LOCAL_IP and dst $UNIKERNEL_IP3) or
+         (src $LOCAL_IP and dst $UNIKERNEL_IP4) or
+         (src $LOCAL_IP and dst $UNIKERNEL_IP5))" &
+    TCPDUMP=$!
+
+    python $TEST_PATH/query_and_connect.py $REMOTE_IP www.unikernel${unikernel_counter}.com
+    sleep 1
+
+    sudo kill $TCPDUMP
+
+    echo "Libvirt status:"
+    ${SSH_EXEC} "sudo virsh list --all"
+
+    echo "Destroying unikernel..."
+    ${SSH_EXEC} "sudo virsh shutdown test-unikernel${unikernel_counter}" #try shutdown first
+    sleep 1
+    ${SSH_EXEC} "sudo virsh destroy test-unikernel${unikernel_counter}" #destroy just in case
+
+    echo "Libvirt status:"
+    ${SSH_EXEC} "sudo virsh list --all"
+
+    sleep 3
+done
+
+kill_remote
+
