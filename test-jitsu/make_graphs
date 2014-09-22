@@ -6,7 +6,7 @@ echo $LOCAL_RESULTS_ROOT_PATH
 
 echo "Processing results..."
 for f in $(find . | grep pcap); do
-    tshark -r $f | head -n 1 | grep "DNS 77 Standard query" > /dev/null && VALID=1 || VALID=0
+    tshark -r $f | head -n 1 | grep unikernel > /dev/null && VALID=1 || VALID=0
     tshark -r $f | grep "\[ACK\] Seq=1 Ack=1" > /dev/null && CONNECTED=1 || CONNECTED=0
 
     if [ $VALID == 1 ] && [ $CONNECTED == 1 ]; then

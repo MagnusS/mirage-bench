@@ -3,7 +3,7 @@
 # get IP of local node from lastlog
 LOCAL_IP=$(lastlog | grep mirage | cut -b27-42)
 
-HOSTS="$LOCAL_IP $UNIKERNEL_IP1 localhost www.openmirage.org blobs.openmirage.org"
+HOSTS="$LOCAL_IP $UNIKERNEL_IP1 localhost recoil.org blobs.openmirage.org"
 REPS=5
 PINGS=10
 
