@@ -24,7 +24,7 @@ for rep in $(seq 1 $REPS); do
 
             echo "Pinging..."
             date | tee -a ${host}_${size}_icmp.log
-            sudo ping -c $PINGS -s $size $host | tee ${host}_${size}_icmp.log
+            sudo ping -c $PINGS -s $size $host | tee -a ${host}_${size}_icmp.log
 
             # use stdbuf to set output line buffered
             #sudo stdbuf -o L hping3 -1 -c $PINGS $host | tee -a ${host}_icmp.log
