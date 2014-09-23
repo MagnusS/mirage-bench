@@ -3,9 +3,9 @@
 # get IP of local node from lastlog
 LOCAL_IP=$(lastlog | grep mirage | cut -b27-42)
 
-HOSTS="$LOCAL_IP $UNIKERNEL_IP1 localhost recoil.org blobs.openmirage.org"
-REPS=5
-PINGS=10
+HOSTS="$LOCAL_IP $UNIKERNEL_IP1 localhost bark.recoil.org blobs.openmirage.org www.google.com"
+REPS=10
+PINGS=100
 
 # only include size up to mtu
 SIZE="56 128 512 1024 1400"
