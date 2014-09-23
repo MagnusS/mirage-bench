@@ -5,6 +5,7 @@ import sys
 print "# Creating graphs from stdin (requires matplotlib)"
 
 result = {}
+keys = []
 for line in sys.stdin:
 	# skip blank lines and comments
 	if len(line.strip()) == 0 or line.strip()[0] == '#':
@@ -15,6 +16,9 @@ for line in sys.stdin:
 		result[host] = {}
 	if not size in result[host]:
 		result[host][size] = {}	
+
+	if not host in keys:
+		keys.append(host)
 		
 	result[host][size]["results"] = float(count)
 	result[host][size]["mean"] = float(mean)
@@ -28,12 +32,13 @@ import numpy as np
 
 labels = sorted(result[result.keys()[0]].keys(), key=int)
 ind = np.arange(len(labels))  # the x locations for the groups
-width = 0.15       # the width of the bars
+width = 0.20       # the width of the bars
 
 fig, ax = plt.subplots()
 ax.set_ylabel('ICMP RTT in milliseconds')
+ax.set_xlabel('Payload size in bytes')
 ax.set_title('Average ICMP RTT')
-ax.set_xticks(ind+width)
+ax.set_xticks(ind+(width * len(keys))/2)
 ax.set_xticklabels( labels )
 
 means = {}
@@ -41,7 +46,7 @@ std = {}
 bars = []
 colors = ['r','b','g','y', 'c', 'm']
 
-for test in sorted(result.keys()):
+for test in keys:
     means[test] = []
     std[test] = []
     for l in labels:
@@ -50,13 +55,13 @@ for test in sorted(result.keys()):
     bars.append(ax.bar(ind, means[test], width, color=colors.pop(), yerr=std[test]))
     ind = ind + width
 
-ax.legend( bars, sorted(result.keys()), loc="best" )
+ax.legend( bars, keys, loc="best" )
 
 def autolabel(rects):
     # attach some text labels
     for rect in rects:
         height = rect.get_height()
-        ax.text(rect.get_x()+rect.get_width()/2., 1.04*height, '%.2f'%float(height),
+        ax.text(rect.get_x()+rect.get_width()/2, 1.04*height, '%.2f'%float(height),
                 ha='center', va='bottom')
 
 for b in bars:

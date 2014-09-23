@@ -1,6 +1,6 @@
 #!/bin/bash
 
 TEST_PATH=$(dirname $0)
-python $TEST_PATH/read_files.py > results.dat && \
+python $TEST_PATH/read_files.py | sort -k 4 -n > results.dat && \
 cat results.dat && \
 cat results.dat | grep -v openmirage | sed "s/$UNIKERNEL_IP1/unikernel/g" | sed "s/10.0.1.1/local_network/g" | python $TEST_PATH/plot.py

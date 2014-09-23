@@ -39,3 +39,4 @@ for h in result.keys():
 	for s in result[h].keys():
 		print h,s,len(result[h][s]), np.mean(result[h][s]), np.std(result[h][s]), np.var(result[h][s]), np.max(result[h][s]), np.min(result[h][s])
 
+print "# result read from", os.getcwd(),"@", os.uname()[1]

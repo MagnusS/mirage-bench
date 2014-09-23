@@ -31,7 +31,7 @@ unikernel=$(pwd)/unikernel/mir-www.xen
 echo "name = 'test-unikernel'
 kernel = '$unikernel'
 builder = 'linux'
-memory = 16
+memory = 256
 on_crash = 'preserve'
 vif = [ 'mac=${UNIKERNEL_MAC1},bridge=br0' ]" >> unikernel.xl
 
