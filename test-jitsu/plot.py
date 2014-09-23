@@ -10,9 +10,9 @@ for filename in sys.argv[1:]:
 	with open(filename) as f:
 		for l in f:
 			line = l.strip()
-			if len(line) == 0:
+			if len(line) == 0 or line[0] == '#':
 				continue
-			if l[0] == "#":
+			if l[0] == "!":
 				print "Warning: Some results are invalid:"
 				print l
 				continue
@@ -37,7 +37,7 @@ for t in results:
 	if t in name:
 		title = name[t]
 	r = results[t]
-	print "Plotting",r
+	print "Plotting",r,"==",len(r)
 	plt.hist(r, bins=20, label=title)
 
 plt.legend(loc="best")
