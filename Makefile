@@ -167,7 +167,7 @@ graphs:
 	$(eval LOCAL_RESULTS_ROOT_PATH=$(LOCAL_ROOT_PATH)/results/$(RESULTS_TAG)/$(TEST))
 
 	@test -f $(LOCAL_RESULTS_ROOT_PATH)/local_environment || (echo "Result not found for test $(TEST). Valid options for RESULT= are:"; \
-		find results | grep $(TEST) | grep local_environment | cut -f2 -d"/"; \
+		find results | grep $(TEST) | grep local_environment | sort | cut -f2 -d"/"; \
 		exit -1)
 
 	@echo "Creating graphs for $(LOCAL_RESULTS_ROOT_PATH)..."
