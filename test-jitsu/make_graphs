@@ -5,14 +5,19 @@ echo $MYPATH
 echo $LOCAL_RESULTS_ROOT_PATH
 
 echo "Processing results..."
-for f in $(find . | grep pcap); do
-    tshark -r $f | head -n 1 | grep unikernel > /dev/null && VALID=1 || VALID=0
-    tshark -r $f | grep "\[ACK\] Seq=1 Ack=1" > /dev/null && CONNECTED=1 || CONNECTED=0
 
-    if [ $VALID == 1 ] && [ $CONNECTED == 1 ]; then
-        tshark -r $f | grep "\[ACK\] Seq=1 Ack=1" | cut -b5-18 | tr -d " "
-    else
-        echo "# $f"
-        echo "# DATA_INVALID (dns query at 0s=$VALID, connected=$CONNECTED)"
-    fi
-done > processed_results.data
+for mode in warm cold; do
+	echo $mode
+	for f in $(find . | grep $mode | grep pcap); do
+            echo $f
+	    tshark -r $f | head -n 1 | grep unikernel > /dev/null && VALID=1 || VALID=0
+	    tshark -r $f | grep "\[ACK\] Seq=1 Ack=1" > /dev/null && CONNECTED=1 || CONNECTED=0
+
+	    if [ $VALID == 1 ] && [ $CONNECTED == 1 ]; then
+		tshark -r $f | grep "\[ACK\] Seq=1 Ack=1" | cut -b5-18 | tr -d " "
+	    else
+		echo "# $f"
+		echo "# DATA_INVALID (dns query at 0s=$VALID, connected=$CONNECTED)"
+	    fi >> processed_results_$mode.data
+	done
+done

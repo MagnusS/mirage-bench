@@ -36,7 +36,7 @@ unikernel_counter=0
 for f in $(seq 1 $REPS); do
     unikernel_counter=$(($unikernel_counter % 5 + 1))
     echo "Repetition $f of $REPS"
-    $TCPDUMP -ni $IF -s 1024 -w $RESULT_PATH/dump_${f}.pcap -U \
+    $TCPDUMP -ni $IF -s 1024 -w $RESULT_PATH/cold_dump_${f}.pcap -U \
         "(port 53 or port 80) and 
          ((src $REMOTE_IP and dst $LOCAL_IP) or 
          (src $LOCAL_IP and dst $REMOTE_IP) or
@@ -72,5 +72,13 @@ for f in $(seq 1 $REPS); do
 
 done
 
+${SSH_EXEC} sudo pkill jitsu
+${SSH_EXEC} "sudo virsh destroy test-unikernel1"
+${SSH_EXEC} "sudo virsh destroy test-unikernel2"
+${SSH_EXEC} "sudo virsh destroy test-unikernel3"
+${SSH_EXEC} "sudo virsh destroy test-unikernel4"
+${SSH_EXEC} "sudo virsh destroy test-unikernel5"
+echo "Waiting 60 seconds..."
+sleep 60
 kill_remote
 
