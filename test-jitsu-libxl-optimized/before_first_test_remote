@@ -2,7 +2,7 @@
 
 echo "Backing up libxenlight and libxenstore"
 mkdir xen_backup && \
-    cp -av /usr/lib/libxen* xen_backup ||
+    cp -av /usr/lib/libxenstore.so.3.0.3 /usr/lib/libxenlight-4.4.so xen_backup ||
     exit -1
 
 TEST_PATH=$(dirname $0)

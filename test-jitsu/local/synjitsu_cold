@@ -32,14 +32,20 @@ fi
 
 echo "using interface $IF"
 
-echo "Starting unikernels..."
-${SSH_EXEC} "sudo virsh start test-unikernel1" 
+ip_dash=$(echo $UNIKERNEL_IP1 | sed s#\\.#-#g)
 
-sleep 10
+echo "setting up xenstore + synjitsu, key=/ip/$ip_dash"
+${SSH_EXEC} "sudo virsh destroy synjitsu" 2>/dev/null
+
+${SSH_EXEC} "sudo xenstore-rm /ip"
+${SSH_EXEC} "sudo xenstore-write /ip ''"
+${SSH_EXEC} "sudo xenstore-chmod /ip b0"
+
+${SSH_EXEC} "sudo virsh start synjitsu"
 
 for f in $(seq 1 $REPS); do
     echo "Repetition $f of $REPS"
-    $TCPDUMP -ni $IF -s 1024 -w $RESULT_PATH/warm_dump_${f}.pcap -U \
+    $TCPDUMP -ni $IF -s 1024 -w $RESULT_PATH/cold_dump_${f}.pcap -U \
         "(port 53 or port 80) and 
          ((src $REMOTE_IP and dst $LOCAL_IP) or 
          (src $LOCAL_IP and dst $REMOTE_IP) or
@@ -57,7 +63,7 @@ for f in $(seq 1 $REPS); do
 
     sleep 1 # give tcpdump time to start
 
-    python $TEST_PATH/query_and_connect.py $REMOTE_IP www.unikernel1.com get
+    python $TEST_PATH/query_and_connect.py $REMOTE_IP www.unikernel-fast-start1.com get
     sleep 3
 
     sudo kill $TCPDUMP_PID
@@ -65,13 +71,25 @@ for f in $(seq 1 $REPS); do
     echo "Libvirt status:"
     ${SSH_EXEC} "sudo virsh list --all"
 
+    echo "Destroying unikernel..."
+    ${SSH_EXEC} "sudo virsh shutdown test-unikernel-fast-start1" #try shutdown first
+    sleep 1
+    ${SSH_EXEC} "sudo virsh destroy test-unikernel-fast-start1" #destroy just in case
+    ${SSH_EXEC} "sudo xenstore-rm /ip/${ip_dash}"
+
+    echo "Libvirt status:"
+    ${SSH_EXEC} "sudo virsh list --all"
+
 done
 
 ${SSH_EXEC} sudo pkill jitsu
+${SSH_EXEC} "sudo virsh destroy test-unikernel-fast-start1"
+${SSH_EXEC} "sudo virsh destroy synjitsu"
 
-${SSH_EXEC} "sudo virsh destroy test-unikernel1" 
+echo "Cleaning up xenstore..."
+${SSH_EXEC} "sudo xenstore-rm /ip"
 
-echo "Waiting 60 seconds"
+echo "Waiting 60 seconds..."
 sleep 60
 kill_remote
 

@@ -1,0 +1,14 @@
+open Mirage
+
+let main = foreign "Synjitsu.Main" (console @-> stackv4 @-> job)
+
+let ipv4_config =
+      let address = Ipaddr.V4.of_string_exn "$UNIKERNEL_IP" in
+      let netmask = Ipaddr.V4.of_string_exn "$UNIKERNEL_NETMASK" in
+      let gateways = [Ipaddr.V4.of_string_exn "$UNIKERNEL_GW"] in
+      { address; netmask; gateways }
+
+let stack = direct_stackv4_with_static_ipv4 default_console tap0 ipv4_config
+
+let () =
+  register "www" [ main $ default_console $ stack ]

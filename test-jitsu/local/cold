@@ -32,9 +32,7 @@ fi
 
 echo "using interface $IF"
 
-unikernel_counter=1
 for f in $(seq 1 $REPS); do
-    #unikernel_counter=$(($unikernel_counter % 5 + 1))
     echo "Repetition $f of $REPS"
     $TCPDUMP -ni $IF -s 1024 -w $RESULT_PATH/cold_dump_${f}.pcap -U \
         "(port 53 or port 80) and 
@@ -54,7 +52,7 @@ for f in $(seq 1 $REPS); do
 
     sleep 1 # give tcpdump time to start
 
-    python $TEST_PATH/query_and_connect.py $REMOTE_IP www.unikernel${unikernel_counter}.com get
+    python $TEST_PATH/query_and_connect.py $REMOTE_IP www.unikernel1.com get
     sleep 3
 
     sudo kill $TCPDUMP_PID
@@ -63,9 +61,9 @@ for f in $(seq 1 $REPS); do
     ${SSH_EXEC} "sudo virsh list --all"
 
     echo "Destroying unikernel..."
-    ${SSH_EXEC} "sudo virsh shutdown test-unikernel${unikernel_counter}" #try shutdown first
+    ${SSH_EXEC} "sudo virsh shutdown test-unikernel1" #try shutdown first
     sleep 1
-    ${SSH_EXEC} "sudo virsh destroy test-unikernel${unikernel_counter}" #destroy just in case
+    ${SSH_EXEC} "sudo virsh destroy test-unikernel1" #destroy just in case
 
     echo "Libvirt status:"
     ${SSH_EXEC} "sudo virsh list --all"
@@ -74,10 +72,6 @@ done
 
 ${SSH_EXEC} sudo pkill jitsu
 ${SSH_EXEC} "sudo virsh destroy test-unikernel1"
-${SSH_EXEC} "sudo virsh destroy test-unikernel2"
-${SSH_EXEC} "sudo virsh destroy test-unikernel3"
-${SSH_EXEC} "sudo virsh destroy test-unikernel4"
-${SSH_EXEC} "sudo virsh destroy test-unikernel5"
 echo "Waiting 60 seconds..."
 sleep 60
 kill_remote

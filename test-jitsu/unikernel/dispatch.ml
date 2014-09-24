@@ -4,7 +4,17 @@ open V1_LWT
 
 module Main (C:CONSOLE) (FS:KV_RO) (S:Cohttp_lwt.Server) = struct
 
+  module I = Init.Make(C)
+
   let start c fs http =
+
+    I.start c >>= fun () ->
+    let () =
+      try match Sys.getenv "SYNJITSU" with
+        | "" -> ()
+        | _  -> Tcpv4.Pcb.set_mode `Fast_start_app
+      with Not_found -> ()
+    in
 
     let read_fs name =
       FS.size fs name
@@ -30,7 +40,7 @@ module Main (C:CONSOLE) (FS:KV_RO) (S:Cohttp_lwt.Server) = struct
 
     (* dispatch non-file URLs *)
     let rec dispatcher = function
-      | [] | [""] -> dispatcher ["index.html"] 
+      | [] | [""] -> dispatcher ["index.html"]
       | segments ->
         let path = String.concat "/" segments in
         try_lwt
