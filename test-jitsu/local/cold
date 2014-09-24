@@ -32,9 +32,9 @@ fi
 
 echo "using interface $IF"
 
-unikernel_counter=0
+unikernel_counter=1
 for f in $(seq 1 $REPS); do
-    unikernel_counter=$(($unikernel_counter % 5 + 1))
+    #unikernel_counter=$(($unikernel_counter % 5 + 1))
     echo "Repetition $f of $REPS"
     $TCPDUMP -ni $IF -s 1024 -w $RESULT_PATH/cold_dump_${f}.pcap -U \
         "(port 53 or port 80) and 
@@ -54,7 +54,7 @@ for f in $(seq 1 $REPS); do
 
     sleep 1 # give tcpdump time to start
 
-    python $TEST_PATH/query_and_connect.py $REMOTE_IP www.unikernel${unikernel_counter}.com
+    python $TEST_PATH/query_and_connect.py $REMOTE_IP www.unikernel${unikernel_counter}.com get
     sleep 3
 
     sudo kill $TCPDUMP_PID

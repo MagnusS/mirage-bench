@@ -18,6 +18,17 @@ for mode in warm cold; do
 	else
 		echo "$(pwd)/$file already exists, skipping"
 	fi
+	file=processed_results_http_$mode.dat
+	if [ ! -e "$file" ]; then	
+		for f in $(find . | grep $mode | grep pcap); do
+		    echo $f
+		    python $MYPATH/find_handshake.py $f get >> $file
+		done
+		echo "Results stored in $(pwd)/$file"
+	else
+		echo "$(pwd)/$file already exists, skipping"
+	fi
 done
 
-python $MYPATH/plot.py processed_results_warm.dat processed_results_cold.dat
+python $MYPATH/plot.py processed_results_http_warm.dat processed_results_http_cold.dat
+mv jitsu.pdf jitsu_http.pdf
