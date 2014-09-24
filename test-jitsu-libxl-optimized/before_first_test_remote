@@ -1,5 +1,10 @@
 #!/bin/bash
 
+echo "Backing up libxenlight and libxenstore"
+mkdir xen_backup && \
+    cp -av /usr/lib/libxen* xen_backup ||
+    exit -1
+
 TEST_PATH=$(dirname $0)
 RESULT_PATH=$(pwd)
 
@@ -41,60 +46,59 @@ exit -1
 # make sure old unikernel is not running
 
 # create config
-for f in $(seq 1 5); do
-    # setup unikernel
-    unikernel_name="test-unikernel$f"
-    unikernel_mac=$(eval echo \$UNIKERNEL_MAC$f) # yikes
-    unikernel_ip=$(eval echo \$UNIKERNEL_IP$f) # ...
-    unikernel_file="$TEST_PATH/unikernel/mir-www-${f}.xen"
-    rm -f $unikernel_file # remove if exists
+f=1
+# setup unikernel
+unikernel_name="test-unikernel$f"
+unikernel_mac=$(eval echo \$UNIKERNEL_MAC$f) # yikes
+unikernel_ip=$(eval echo \$UNIKERNEL_IP$f) # ...
+unikernel_file="$TEST_PATH/unikernel/mir-www-${f}.xen"
+rm -f $unikernel_file # remove if exists
 
-    cd $TEST_PATH/unikernel && \
-    cat config.tmpl | \
-    sed "s/\$UNIKERNEL_IP/$unikernel_ip/g" | \
-    sed "s/\$UNIKERNEL_GW/$UNIKERNEL_GW/g" | \
-    sed "s/\$UNIKERNEL_NETMASK/$UNIKERNEL_NETMASK/g" > config.ml && \
-    cat config.ml && \
-    mirage clean && \
-    mirage configure --xen && \
-    cat Makefile | sed "s#-lbigarray#-lbigarray -L/usr/lib/arm-linux-gnueabihf#g" > Makefile.2 && \
-    mv Makefile.2 Makefile && \
-    mirage build && \
-    cp mir-www.xen $unikernel_file && \
-    cd .. || \
-    exit -1
+cd $TEST_PATH/unikernel && \
+cat config.tmpl | \
+sed "s/\$UNIKERNEL_IP/$unikernel_ip/g" | \
+sed "s/\$UNIKERNEL_GW/$UNIKERNEL_GW/g" | \
+sed "s/\$UNIKERNEL_NETMASK/$UNIKERNEL_NETMASK/g" > config.ml && \
+cat config.ml && \
+mirage clean && \
+mirage configure --xen && \
+cat Makefile | sed "s#-lbigarray#-lbigarray -L/usr/lib/arm-linux-gnueabihf#g" > Makefile.2 && \
+mv Makefile.2 Makefile && \
+mirage build && \
+cp mir-www.xen $unikernel_file && \
+cd .. || \
+exit -1
 
-    echo "<domain type='xen'>
-      <name>$unikernel_name</name>
-      <!-- low memory = faster startup -->
-      <memory unit='KiB'>32000</memory>
-      <currentMemory unit='KiB'>32000</currentMemory>
-      <vcpu placement='static'>1</vcpu>
-      <os>
-        <type arch='armv7l' machine='xenpv'>linux</type>
-        <!-- replace with kernel -->
-        <kernel>$unikernel_file</kernel>
-        <cmdline> </cmdline>
-      </os>
-      <clock offset='utc' adjustment='reset'/>
-      <on_poweroff>destroy</on_poweroff>
-      <on_reboot>restart</on_reboot>
-      <on_crash>preserve</on_crash>
-      <devices>
-        <interface type='bridge'>
-          <mac address='$unikernel_mac'/>
-          <source bridge='br0'/>
-          <script path='$TEST_PATH/jitsu/scripts/fast-vif-bridge'/>
-        </interface>
-        <console type='pty'>
-          <target type='virtio' port='0'/>
-        </console>
-      </devices>
-    </domain>" > $TEST_PATH/jitsu/jitsu_libvirt.xml
+echo "<domain type='xen'>
+  <name>$unikernel_name</name>
+  <!-- low memory = faster startup -->
+  <memory unit='KiB'>32000</memory>
+  <currentMemory unit='KiB'>32000</currentMemory>
+  <vcpu placement='static'>1</vcpu>
+  <os>
+    <type arch='armv7l' machine='xenpv'>linux</type>
+    <!-- replace with kernel -->
+    <kernel>$unikernel_file</kernel>
+    <cmdline> </cmdline>
+  </os>
+  <clock offset='utc' adjustment='reset'/>
+  <on_poweroff>destroy</on_poweroff>
+  <on_reboot>restart</on_reboot>
+  <on_crash>preserve</on_crash>
+  <devices>
+    <interface type='bridge'>
+      <mac address='$unikernel_mac'/>
+      <source bridge='br0'/>
+      <script path='$TEST_PATH/jitsu/scripts/fast-vif-bridge'/>
+    </interface>
+    <console type='pty'>
+      <target type='virtio' port='0'/>
+    </console>
+  </devices>
+</domain>" > $TEST_PATH/jitsu/jitsu_libvirt.xml
 
-    sudo virsh destroy $unikernel_name 2>&1 > /dev/null
-    sudo xl destroy $unikernel_name 2>&1 >  /dev/null
-    sudo virsh undefine $unikernel_name 2>&1 > /dev/null # undefine old test-unikernel if it exists
-    sudo virsh define $TEST_PATH/jitsu/jitsu_libvirt.xml || exit -1 # define new kernel
-done
+sudo virsh destroy $unikernel_name 2>&1 > /dev/null
+sudo xl destroy $unikernel_name 2>&1 >  /dev/null
+sudo virsh undefine $unikernel_name 2>&1 > /dev/null # undefine old test-unikernel if it exists
+sudo virsh define $TEST_PATH/jitsu/jitsu_libvirt.xml || exit -1 # define new kernel
 
