@@ -33,7 +33,7 @@ import numpy as np
 
 labels = sorted(result[result.keys()[0]].keys(), key=int)
 ind = np.arange(len(labels))  # the x locations for the groups
-width = 0.18       # the width of the bars
+width = 0.20       # the width of the bars
 
 fig, ax = plt.subplots()
 ax.set_ylabel('ICMP RTT in milliseconds')

@@ -1,0 +1,22 @@
+#!/bin/bash
+
+TEST_PATH=$(dirname $0)
+
+MIRAGE_VER=2.0.0
+echo "This test requires $MIRAGE_VER"
+opam list mirage | grep $MIRAGE_VER && echo "Mirage $MIRAGE_VER found" || exit -1
+eval `opam config env`
+
+sudo apt-get install hping3 coreutils -y
+
+sudo xl destroy linux-guest-1
+sudo xl create $TEST_PATH/test-linux-vm.conf || exit -1
+
+echo "Waiting for VM to respond to ping..."
+while sudo ping -w 1 -c 1 10.0.1.145 ; do
+	sleep 1
+	echo "Retrying..."
+done
+
+echo "Sleeping additional 30 s to wait for boot"
+sleep 30

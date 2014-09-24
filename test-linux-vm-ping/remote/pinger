@@ -1,0 +1,38 @@
+#!/bin/bash
+
+HOSTS="10.0.1.145"
+REPS=10
+PINGS=100
+
+# only include size up to mtu
+SIZE="56 128 512 1024 1400"
+
+# send $PINGS ICMP packets to each host $REPS times. 
+
+echo "Pinging $HOSTS"
+
+for rep in $(seq 1 $REPS); do
+    date
+    echo "Repetition $rep of $REPS"
+
+    for size in $SIZE; do
+        for host in $HOSTS; do
+            echo "==== $host ===="
+
+            echo "Pinging..."
+            date | tee -a ${host}_${size}_icmp.log
+            sudo ping -c $PINGS -s $size $host | tee -a ${host}_${size}_icmp.log
+
+            # use stdbuf to set output line buffered
+            #sudo stdbuf -o L hping3 -1 -c $PINGS $host | tee -a ${host}_icmp.log
+
+            #echo "Synding syn/ack to port 80..."
+            #date | tee -a ${host}_synack.log
+            #sudo stdbuf -o L hping3 -SA -c $PINGS -p 80 $host | tee -a ${host}_synack.log
+
+            #echo "Sending syn to port 80..."
+            #date | tee -a ${host}_syn.log
+            #sudo stdbuf -o L hping3 -S -c $PINGS -p 80 $host | tee -a ${host}_syn.log
+        done
+    done
+done

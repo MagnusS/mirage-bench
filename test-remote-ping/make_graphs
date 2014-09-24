@@ -3,4 +3,4 @@
 TEST_PATH=$(dirname $0)
 python $TEST_PATH/read_files.py > results.dat && \
 cat results.dat && \
-cat results.dat | sort -k 4 -n | grep -v openmirage | grep -v google | sed "s/$UNIKERNEL_IP1/unikernel/g" | sed "s/10.0.1.1/local_network/g" | python $TEST_PATH/plot.py
+cat results.dat | sort -k 5 -n | grep -v openmirage | grep -v google | sed "s/10.0.1.145/linux_guest/g" | sed "s/$UNIKERNEL_IP1/mirage_guest/g" | sed "s/10.0.1.1/local_network/g" | python $TEST_PATH/plot.py
