@@ -1,0 +1,12 @@
+#!/bin/bash
+
+TEST_PATH=$(dirname $0)
+RESULT_PATH=$(pwd)
+
+
+echo "Running unikernels at $UNIKERNEL_IP1, $UNIKERNEL_IP2, $UNIKERNEL_IP3, $UNIKERNEL_IP4, $UNIKERNEL_IP5..."
+
+# uses 7200 as ttl, as we stop/start all vms manually for the tests
+cd $TEST_PATH/../jitsu || exit -1
+sudo ./jitsu -b 0.0.0.0 -c xen:/// -d 0 -f 8.8.8.8 -m destroy -t 7200 www.unikernel1.com,$UNIKERNEL_IP1,test-unikernel1 www.unikernel2.com,$UNIKERNEL_IP2,test-unikernel2 www.unikernel3.com,$UNIKERNEL_IP3,test-unikernel3 www.unikernel4.com,$UNIKERNEL_IP4,test-unikernel4 www.unikernel5.com,$UNIKERNEL_IP5,test-unikernel5
+

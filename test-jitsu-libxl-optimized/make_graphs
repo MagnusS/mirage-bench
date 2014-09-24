@@ -1,0 +1,34 @@
+#!/bin/bash
+
+MYPATH=$(dirname $0)
+echo $MYPATH
+echo $LOCAL_RESULTS_ROOT_PATH
+
+echo "Processing results..."
+
+for mode in warm cold; do
+	echo $mode
+	file=processed_results_$mode.dat
+	if [ ! -e "$file" ]; then	
+		for f in $(find . | grep $mode | grep pcap); do
+		    echo $f
+		    python $MYPATH/find_handshake.py $f >> $file
+		done
+		echo "Results stored in $(pwd)/$file"
+	else
+		echo "$(pwd)/$file already exists, skipping"
+	fi
+	file=processed_results_http_$mode.dat
+	if [ ! -e "$file" ]; then	
+		for f in $(find . | grep $mode | grep pcap); do
+		    echo $f
+		    python $MYPATH/find_handshake.py $f get >> $file
+		done
+		echo "Results stored in $(pwd)/$file"
+	else
+		echo "$(pwd)/$file already exists, skipping"
+	fi
+done
+
+python $MYPATH/plot.py processed_results_http_warm.dat processed_results_http_cold.dat
+mv jitsu.pdf jitsu_http.pdf
