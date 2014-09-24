@@ -55,7 +55,7 @@ function make_unikernel () {
 	dir=$5
 	export SYNJITSU=$6
 
-	echo "Compiling unikernel $name with ip $ip gw $gw netmask $netmask mac $mac, read from $dir, compiled to in $file, SYNJITSU=$synjitsu"
+	echo "Compiling unikernel $name with ip $ip gw $gw netmask $netmask mac $mac, read from $dir, compiled to in $file, SYNJITSU=$SYNJITSU"
 
 	cd $dir && \
 	cat config.tmpl | \
