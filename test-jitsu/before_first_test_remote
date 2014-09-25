@@ -53,10 +53,9 @@ function make_unikernel () {
 	mac=$3
 	file=$4
 	dir=$5
-	SYNJITSU=$6
-	export $SYNJITSU
+	mode=$6
 
-	echo "Compiling unikernel $name with ip $ip gw $gw netmask $netmask mac $mac, read from $dir, compiled to in $file, SYNJITSU=$SYNJITSU"
+	echo "Compiling unikernel $name with ip $ip gw $gw netmask $netmask mac $mac, read from $dir, compiled to in $file, mode=$mode"
 
 	cd $dir && \
 	cat config.tmpl | \
@@ -64,6 +63,9 @@ function make_unikernel () {
 	sed "s/\$UNIKERNEL_GW/$gw/g" | \
 	sed "s/\$UNIKERNEL_NETMASK/$netmask/g" > config.ml && \
 	cat config.ml && \
+	cat dispatch.tmpl | \
+	sed "s/\$MODE/$mode/g" > dispatch.ml && \
+	cat dispatch.ml && \
 	mirage clean && \
 	mirage configure --xen && \
 	mirage build && \
@@ -106,10 +108,11 @@ function make_unikernel () {
 }
 
 
-make_unikernel test-unikernel1 $UNIKERNEL_IP1 $UNIKERNEL_MAC1 $RESULT_PATH/unikernel1.xen $TEST_PATH/unikernel
-make_unikernel test-unikernel-fast-start1 $UNIKERNEL_IP1 $UNIKERNEL_MAC1 $RESULT_PATH/unikernel-fast-start1.xen $TEST_PATH/unikernel SYNJITSU
+make_unikernel test-unikernel1 $UNIKERNEL_IP1 $UNIKERNEL_MAC1 $RESULT_PATH/unikernel1.xen $TEST_PATH/unikernel Normal
 
-make_unikernel synjitsu $UNIKERNEL_IP5 $UNIKERNEL_MAC5 $RESULT_PATH/synjitsu.xen $TEST_PATH/synjitsu
+make_unikernel test-unikernel-fast-start1 $UNIKERNEL_IP1 $UNIKERNEL_MAC1 $RESULT_PATH/unikernel-fast-start1.xen $TEST_PATH/unikernel Fast_start_app
+
+make_unikernel synjitsu $UNIKERNEL_IP5 $UNIKERNEL_MAC5 $RESULT_PATH/synjitsu.xen $TEST_PATH/synjitsu Normal
 
 # Remove ip from xenstore, just in case
 sudo xenstore-rm /ip
