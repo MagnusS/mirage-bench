@@ -29,6 +29,8 @@ UNIKERNEL_MAC5=de:ad:bb:ee:ee:ee
 UNIKERNEL_NETMASK=255.255.255.0
 UNIKERNEL_GW=10.0.1.1
 
+LINUX_GUEST_IP1=10.0.1.145
+
 SHELL=/bin/bash
 
 # RESULTS_TAG should be unique for each run - the name of the results-subdir
@@ -127,6 +129,7 @@ run: | sync_time sync_tests
 	echo "export UNIKERNEL_MAC5=$(UNIKERNEL_MAC5)" >> $(LOCAL_RESULTS_ROOT_PATH)/local_environment
 	echo "export UNIKERNEL_NETMASK=$(UNIKERNEL_NETMASK)" >> $(LOCAL_RESULTS_ROOT_PATH)/local_environment
 	echo "export UNIKERNEL_GW=$(UNIKERNEL_GW)" >> $(LOCAL_RESULTS_ROOT_PATH)/local_environment
+	echo "export LINUX_GUEST_IP1=$(LINUX_GUEST_IP1)" >> $(LOCAL_RESULTS_ROOT_PATH)/local_environment
 	echo "export LOCAL_RESULTS_ROOT_PATH=$(LOCAL_RESULTS_ROOT_PATH)" >> $(LOCAL_RESULTS_ROOT_PATH)/local_environment
 	echo "export LOCAL_TEST_ROOT_PATH=$(LOCAL_TEST_ROOT_PATH)" >> $(LOCAL_RESULTS_ROOT_PATH)/local_environment
 	echo "export LOCAL_ROOT_PATH=$(LOCAL_ROOT_PATH)" >> $(LOCAL_RESULTS_ROOT_PATH)/local_environment

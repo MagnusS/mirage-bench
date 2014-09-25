@@ -2,6 +2,12 @@ open Lwt
 open Printf
 open V1_LWT
 
+let () =
+  try match Sys.getenv "SYNJITSU" with
+    | "" -> ()
+    | _  -> Tcpv4.Pcb.set_mode `Fast_start_app
+  with Not_found -> ()
+
 module Main (C:CONSOLE) (FS:KV_RO) (S:Cohttp_lwt.Server) = struct
 
   module I = Init.Make(C)
@@ -9,12 +15,6 @@ module Main (C:CONSOLE) (FS:KV_RO) (S:Cohttp_lwt.Server) = struct
   let start c fs http =
 
     I.start c >>= fun () ->
-    let () =
-      try match Sys.getenv "SYNJITSU" with
-        | "" -> ()
-        | _  -> Tcpv4.Pcb.set_mode `Fast_start_app
-      with Not_found -> ()
-    in
 
     let read_fs name =
       FS.size fs name
