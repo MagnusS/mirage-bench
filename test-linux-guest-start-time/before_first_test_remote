@@ -1,0 +1,11 @@
+#!/bin/bash
+
+TEST_PATH=$(dirname $0)
+RESULT_PATH=$(pwd)
+
+sudo xl shutdown linux-guest-1 || true
+sleep 5
+sudo xl destroy linux-guest-1 || true
+sleep 1
+
+sudo xl list
