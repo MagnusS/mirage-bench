@@ -25,12 +25,12 @@ let safe_read h k =
 
 let read xs k =
   let k = xs_key k in
-  printf "read %s\n" k;
+(*  printf "read %s\n" k; *)
   OS.Xs.(immediate xs (fun h -> safe_read h k))
 
 let remove xs k =
   let k = xs_key k in
-  printf "remove %s\n" k;
+(*  printf "remove %s\n" k; *)
   OS.Xs.(immediate xs (fun h -> rm h k))
 
 let write xs kvs =
@@ -38,14 +38,14 @@ let write xs kvs =
   let str =
     String.concat " " (List.map (fun (k, v) -> sprintf "%s:%s" k v) kvs)
   in
-  printf "write %s\n" str;
+(*  printf "write %s\n" str; *)
   OS.Xs.(transaction xs (fun h ->
       Lwt_list.iter_p (fun (k, v) -> write h k v) kvs
     ))
 
 let watch xs k =
   let k = xs_key k in
-  printf "watch %s\n" k;
+(*  printf "watch %s\n" k; *)
   OS.Xs.(wait xs (fun h ->
       safe_read h k >>= function
       | None   -> fail Xs_protocol.Eagain
@@ -54,7 +54,7 @@ let watch xs k =
 
 let directory xs k =
   let k = xs_key k in
-  printf "directory %s\n" k;
+(*  printf "directory %s\n" k; *)
   OS.Xs.(immediate xs (fun h -> directory h k)) >>= fun dirs ->
   let dirs = List.filter ((<>) "") dirs in
   List.map (fun dir ->
