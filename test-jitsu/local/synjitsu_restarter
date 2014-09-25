@@ -34,14 +34,24 @@ echo "using interface $IF"
 
 ip_dash=$(echo $UNIKERNEL_IP1 | sed s#\\.#-#g)
 
-echo "setting up xenstore + synjitsu, key=/ip/$ip_dash"
-${SSH_EXEC} "sudo virsh destroy synjitsu" 2>/dev/null
+function restart_synjitsu() {
+	echo "setting up xenstore + synjitsu, key=/ip/$ip_dash"
+	${SSH_EXEC} "sudo virsh destroy synjitsu" 2>/dev/null
 
-${SSH_EXEC} "sudo xenstore-rm /ip"
-${SSH_EXEC} "sudo xenstore-write /ip ''"
-${SSH_EXEC} "sudo xenstore-chmod /ip b0"
+	sleep 1
 
-${SSH_EXEC} "sudo virsh start synjitsu"
+	${SSH_EXEC} "sudo xenstore-rm /ip"
+	${SSH_EXEC} "sudo xenstore-write /ip ''"
+	${SSH_EXEC} "sudo xenstore-chmod /ip b0"
+	
+	sleep 1
+
+	${SSH_EXEC} "sudo virsh start synjitsu"
+
+	sleep 1
+}
+
+restart_synjitsu
 
 for f in $(seq 1 $REPS); do
     echo "Setting remote unikernel arp"
@@ -79,6 +89,8 @@ for f in $(seq 1 $REPS); do
     sleep 1
     ${SSH_EXEC} "sudo virsh destroy test-unikernel-fast-start1" #destroy just in case
     ${SSH_EXEC} "sudo xenstore-rm /ip/${ip_dash}"
+
+    restart_synjitsu
 
     echo "Libvirt status:"
     ${SSH_EXEC} "sudo virsh list --all"

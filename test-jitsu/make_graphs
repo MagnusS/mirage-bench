@@ -6,8 +6,13 @@ echo $LOCAL_RESULTS_ROOT_PATH
 
 echo "Processing results..."
 
-for mode in warm cold; do
+#for mode in warm cold; do
+for mode in warm cold synjitsu_restarter; do
 	echo $mode
+	if [ ! -d $LOCAL_RESULTS_ROOT_PATH/${mode}_x_run_jitsu ]; then
+		echo skipping
+		continue
+	fi
 	file=processed_results_$mode.dat
 	if [ ! -e "$file" ]; then	
 		for f in $(find . | grep $mode | grep pcap); do

@@ -55,6 +55,7 @@ function make_unikernel () {
 	file=$4
 	dir=$5
 	mode=$6
+	memory=$7
 
 	echo "Compiling unikernel $name with ip $ip gw $gw netmask $netmask mac $mac, read from $dir, compiled to in $file, mode=$mode"
 
@@ -77,8 +78,8 @@ function make_unikernel () {
 	echo "<domain type='xen'>
 	<name>$name</name>
 	<!-- low memory = faster startup -->
-	<memory unit='KiB'>32000</memory>
-	<currentMemory unit='KiB'>32000</currentMemory>
+	<memory unit='KiB'>$memory</memory>
+	<currentMemory unit='KiB'>$memory</currentMemory>
 	<vcpu placement='static'>1</vcpu>
 	<os>
 	<type arch='armv7l' machine='xenpv'>linux</type>
@@ -109,11 +110,11 @@ function make_unikernel () {
 }
 
 
-make_unikernel test-unikernel1 $UNIKERNEL_IP1 $UNIKERNEL_MAC1 $RESULT_PATH/unikernel1.xen $TEST_PATH/unikernel Normal
+make_unikernel test-unikernel1 $UNIKERNEL_IP1 $UNIKERNEL_MAC1 $RESULT_PATH/unikernel1.xen $TEST_PATH/unikernel Normal 32000
 
-make_unikernel test-unikernel-fast-start1 $UNIKERNEL_IP1 $UNIKERNEL_MAC1 $RESULT_PATH/unikernel-fast-start1.xen $TEST_PATH/unikernel Fast_start_app
+make_unikernel test-unikernel-fast-start1 $UNIKERNEL_IP1 $UNIKERNEL_MAC1 $RESULT_PATH/unikernel-fast-start1.xen $TEST_PATH/unikernel Fast_start_app 32000
 
-make_unikernel synjitsu $UNIKERNEL_IP5 $UNIKERNEL_MAC5 $RESULT_PATH/synjitsu.xen $TEST_PATH/synjitsu Normal
+make_unikernel synjitsu $UNIKERNEL_IP5 $UNIKERNEL_MAC5 $RESULT_PATH/synjitsu.xen $TEST_PATH/synjitsu Normal 64000
 
 # Remove ip from xenstore, just in case
 sudo xenstore-rm /ip
