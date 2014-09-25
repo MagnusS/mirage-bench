@@ -43,7 +43,7 @@ for f in $(seq 1 $REPS); do
     sleep 1 # give tcpdump time to start
 
     ${SSH_EXEC} "sudo xl create $REMOTE_TEST_ROOT_PATH/linux-guest-1.conf"
-    sudo hping3 -S --fast -p 22 $LINUX_GUEST_IP1 | while read g; do if [[ $g =~ "flags=SA" ]]; then echo "Done" $g; sudo pkill hping3; else echo $g; fi; done ; 
+    sudo hping3 -S -p 22 $LINUX_GUEST_IP1 | while read g; do if [[ $g =~ "flags=SA" ]]; then echo "Done" $g; sudo pkill hping3; else echo $g; fi; done ; 
 
     sudo kill $TCPDUMP_PID
 
