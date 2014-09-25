@@ -56,6 +56,7 @@ let directory xs k =
   let k = xs_key k in
   printf "directory %s\n" k;
   OS.Xs.(immediate xs (fun h -> directory h k)) >>= fun dirs ->
+  let dirs = List.filter ((<>) "") dirs in
   List.map (fun dir ->
       mutate_string (function '-' -> '.' | c -> c) dir
     ) dirs
