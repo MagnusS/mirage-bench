@@ -13,3 +13,9 @@ which pip && \
 
 which apt-get && \
     sudo apt-get install python-dnspython
+
+#sudo arp -s $UNIKERNEL_IP1 $UNIKERNEL_MAC1
+#sudo arp -s $UNIKERNEL_IP2 $UNIKERNEL_MAC2
+#sudo arp -s $UNIKERNEL_IP3 $UNIKERNEL_MAC3
+#sudo arp -s $UNIKERNEL_IP4 $UNIKERNEL_MAC4
+#sudo arp -s $UNIKERNEL_IP5 $UNIKERNEL_MAC5

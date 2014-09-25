@@ -44,6 +44,9 @@ ${SSH_EXEC} "sudo xenstore-chmod /ip b0"
 ${SSH_EXEC} "sudo virsh start synjitsu"
 
 for f in $(seq 1 $REPS); do
+    echo "Setting remote unikernel arp"
+    ${SSH_EXEC} "sudo arp -s $UNIKERNEL_IP1 $UNIKERNEL_MAC1"
+
     echo "Repetition $f of $REPS"
     $TCPDUMP -ni $IF -s 1024 -w $RESULT_PATH/cold_dump_${f}.pcap -U \
         "(port 53 or port 80) and 

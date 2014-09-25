@@ -42,6 +42,7 @@ cd - || \
 exit -1
 
 # make sure old unikernel is not running
+sudo brctl setageing br0 0
 
 # setup unikernel
 
