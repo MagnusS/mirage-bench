@@ -8,7 +8,7 @@ module Main (C:CONSOLE) (FS:KV_RO) (S:Cohttp_lwt.Server) = struct
 
   let () =
     I.start ();
-    Tcpv4.Pcb.set_mode `Fast_start_app (* need to replace that with a subst *)
+    Tcpv4.Pcb.set_mode `$MODE
 
   let start c fs http =
 
