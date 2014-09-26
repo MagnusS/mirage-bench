@@ -8,5 +8,4 @@ echo "Running unikernels at $UNIKERNEL_IP1, $UNIKERNEL_IP2, $UNIKERNEL_IP3, $UNI
 
 # uses 7200 as ttl, as we stop/start all vms manually for the tests
 cd $TEST_PATH/../jitsu || exit -1
-sudo ./jitsu -b 0.0.0.0 -c xen:/// -d 0 -f 8.8.8.8 -m destroy -t 7200 www.unikernel1.com,$UNIKERNEL_IP1,test-unikernel1 www.unikernel-fast-start1.com,$UNIKERNEL_IP1,test-unikernel-fast-start1 
-
+sudo ./jitsu -b 0.0.0.0 -c xen:/// -d 0 -f 8.8.8.8 -m destroy -t 7200 www.unikernel1.com,$UNIKERNEL_IP1,test-unikernel1 www.unikernel-fast-start1.com,$UNIKERNEL_IP1,test-unikernel-fast-start1 www.unikernel-default1.com,$UNIKERNEL_IP1,test-unikernel-fast-start1-default

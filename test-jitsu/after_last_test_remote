@@ -4,4 +4,7 @@ echo "This script is executed remotely after the tests"
 
 TEST_PATH=$(dirname $0)
 
-sudo xl destroy test-unikernel || true
+sudo xl destroy test-unikernel1 || true
+sudo xl destroy test-unikernel-fast-start1 || true
+sudo xl destroy test-unikernel-fast-start1_default || true
+sudo xl destroy synjitsu || true

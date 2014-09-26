@@ -35,9 +35,12 @@ else
     git clone https://github.com/MagnusS/jitsu.git jitsu || exit -1
 fi
 cd jitsu && git checkout 0cc21d82eb741da0a885414d6822c2cf562af527 && cd - || exit -1
+curl https://raw.githubusercontent.com/MagnusS/jitsu/master/add_vif.c -o jitsu/add_vif.c
 
 cd $TEST_PATH/jitsu && \
 make && \
+gcc add_vif.c -o scripts/fast-vif-bridge -O2 -Wall && \
+strip scripts/fast-vif-bridge && \
 cd - || \
 exit -1
 
@@ -103,10 +106,42 @@ function make_unikernel () {
 	</devices>
 	</domain>" > $TEST_PATH/jitsu/jitsu_libvirt.xml
 
+	echo "<domain type='xen'>
+	<name>${name}-default</name>
+	<!-- low memory = faster startup -->
+	<memory unit='KiB'>$memory</memory>
+	<currentMemory unit='KiB'>$memory</currentMemory>
+	<vcpu placement='static'>1</vcpu>
+	<os>
+	<type arch='armv7l' machine='xenpv'>linux</type>
+	<!-- replace with kernel -->
+	<kernel>$file</kernel>
+	<cmdline> </cmdline>
+	</os>
+	<clock offset='utc' adjustment='reset'/>
+	<on_poweroff>destroy</on_poweroff>
+	<on_reboot>restart</on_reboot>
+	<on_crash>preserve</on_crash>
+	<devices>
+	<interface type='bridge'>
+	  <mac address='$mac'/>
+	  <source bridge='br0'/>
+	</interface>
+	<console type='pty'>
+	  <target type='virtio' port='0'/>
+	</console>
+	</devices>
+	</domain>" > $TEST_PATH/jitsu/jitsu_libvirt_default.xml
+
 	sudo virsh destroy $name 2>&1 > /dev/null
 	sudo xl destroy $name 2>&1 >  /dev/null
 	sudo virsh undefine $name 2>&1 > /dev/null # undefine old test-unikernel if it exists
 	sudo virsh define $TEST_PATH/jitsu/jitsu_libvirt.xml || exit -1 # define new kernel
+
+	sudo virsh destroy ${name}-default 2>&1 > /dev/null
+	sudo xl destroy ${name}-default 2>&1 >  /dev/null
+	sudo virsh undefine ${name}-default 2>&1 > /dev/null # undefine old test-unikernel if it exists
+	sudo virsh define $TEST_PATH/jitsu/jitsu_libvirt_default.xml || exit -1 # define new kernel
 }
 
 

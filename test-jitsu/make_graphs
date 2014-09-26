@@ -7,7 +7,7 @@ echo $LOCAL_RESULTS_ROOT_PATH
 echo "Processing results..."
 
 #for mode in warm cold; do
-for mode in warm cold synjitsu_restarter; do
+for mode in warm cold synjitsu_restarter synjitsu_restarter_default_vif; do
 	echo $mode
 	if [ ! -d $LOCAL_RESULTS_ROOT_PATH/${mode}_x_run_jitsu ]; then
 		echo skipping
