@@ -73,6 +73,10 @@ function make_unikernel () {
 	cat dispatch.ml && \
 	mirage clean && \
 	mirage configure --xen && \
+        echo "WARNING WARNING : Replacing Ipv4 with Ipv4_fix in generated code" && \
+        mv main.ml main.orig.ml && \
+        cat main.orig.ml | \
+        sed "s/Ipv4.Make/Ipv4_fix.Make/g" > main.ml && \
 	mirage build && \
 	cp mir-www.xen $file && \
 	cd .. || \
