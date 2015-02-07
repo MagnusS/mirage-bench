@@ -1,0 +1,1098 @@
+From 3a4dc15650f37291281bf99968a9f372886c4dd3 Mon Sep 17 00:00:00 2001
+From: Thomas Gazagnaire <thomas@gazagnaire.org>
+Date: Mon, 19 Jan 2015 18:31:28 +0000
+Subject: [PATCH 1/7] Make Options.t serializable
+
+---
+ _tags           |  1 +
+ tcp/options.ml  | 15 +++++++++++++--
+ tcp/options.mli |  3 +++
+ 3 files changed, 17 insertions(+), 2 deletions(-)
+
+diff --git a/_tags b/_tags
+index d64e533..6f70e4e 100644
+--- a/_tags
++++ b/_tags
+@@ -164,3 +164,4 @@ true: annot, bin_annot, principal, strict_sequence, debug
+ <lib/wire_structs.ml>: pkg_cstruct.syntax
+ <lib/arpv4.ml>: pkg_cstruct.syntax
+ <dhcp/dhcp_clientv4.ml>: pkg_cstruct.syntax
++<tcp/options.ml>: pkg_sexplib.syntax
+diff --git a/tcp/options.ml b/tcp/options.ml
+index 1e69a58..75a1b47 100644
+--- a/tcp/options.ml
++++ b/tcp/options.ml
+@@ -16,6 +16,8 @@
+ 
+ (* TCP options parsing *)
+ 
++open Sexplib.Std
++
+ exception Bad_option of string
+ 
+ type t =
+@@ -26,6 +28,15 @@ type t =
+   | SACK of (int32 * int32) list  (* RFC2018 *)
+   | Timestamp of int32 * int32    (* RFC1323 3.2 *)
+   | Unknown of int * string       (* RFC793 *)
++with sexp
++
++type ts = t list with sexp
++
++let to_string ts =
++  Sexplib.Sexp.to_string (sexp_of_ts ts)
++
++let of_string str =
++  ts_of_sexp (Sexplib.Sexp.of_string str)
+ 
+ let report_error n =
+   let error = Printf.sprintf "Invalid option %d presented" n in
+@@ -158,7 +169,7 @@ let marshal buf ts =
+     tlen+3
+   | _ -> assert false
+ 
+-let to_string = function
++let string_of_t = function
+   | Noop -> "Noop"
+   | MSS m -> Printf.sprintf "MSS=%d" m
+   | Window_size_shift b -> Printf.sprintf "Window>>%d" b
+@@ -169,4 +180,4 @@ let to_string = function
+   | Unknown (t,_) -> Printf.sprintf "%d?" t
+ 
+ let prettyprint s =
+-  Printf.sprintf "[ %s ]" (String.concat "; " (List.map to_string s))
++  Printf.sprintf "[ %s ]" (String.concat "; " (List.map string_of_t s))
+diff --git a/tcp/options.mli b/tcp/options.mli
+index 9cb3519..89374b3 100644
+--- a/tcp/options.mli
++++ b/tcp/options.mli
+@@ -30,3 +30,6 @@ type t =
+ val marshal: Cstruct.t -> t list -> int
+ val unmarshal : Cstruct.t -> t list
+ val prettyprint : t list -> string
++
++val to_string: t list -> string
++val of_string: string -> t list
+
+From f0dd568346190c189b0ae18c7aa2e7260d8a89bf Mon Sep 17 00:00:00 2001
+From: Thomas Gazagnaire <thomas@gazagnaire.org>
+Date: Mon, 19 Jan 2015 18:34:35 +0000
+Subject: [PATCH 2/7] Make Sequence.t serializable
+
+---
+ tcp/sequence.ml  | 3 ++-
+ tcp/sequence.mli | 1 +
+ 2 files changed, 3 insertions(+), 1 deletion(-)
+
+diff --git a/tcp/sequence.ml b/tcp/sequence.ml
+index c1dffea..812fbd3 100644
+--- a/tcp/sequence.ml
++++ b/tcp/sequence.ml
+@@ -43,9 +43,10 @@ let sub a b = Int32.sub a b
+ (* a++ *)
+ let incr a = Int32.add a 1l
+ 
+-let compare a b = Int32.compare a b 
++let compare a b = Int32.compare a b
+ let of_int32 t = t
+ let of_int t = Int32.of_int t
+ let to_int32 t = t
+ let to_int t = Int32.to_int t
+ let to_string t = Printf.sprintf "%lu" t
++let of_string str = Int32.of_string str
+diff --git a/tcp/sequence.mli b/tcp/sequence.mli
+index 451dedc..a0ab6eb 100644
+--- a/tcp/sequence.mli
++++ b/tcp/sequence.mli
+@@ -46,3 +46,4 @@ val of_int: int -> t
+ val to_int32: t -> int32
+ val to_int: t -> int
+ val to_string: t -> string
++val of_string: string -> t
+
+From 9266a178b21ff854602e878029da4a155d788d82 Mon Sep 17 00:00:00 2001
+From: Thomas Gazagnaire <thomas@gazagnaire.org>
+Date: Mon, 19 Jan 2015 18:36:23 +0000
+Subject: [PATCH 3/7] Make Wire.id serializable
+
+---
+ tcp/wire.ml  | 27 ++++++++++++++++++++++++++-
+ tcp/wire.mli | 12 +++++++++++-
+ 2 files changed, 37 insertions(+), 2 deletions(-)
+
+diff --git a/tcp/wire.ml b/tcp/wire.ml
+index 3844607..0394121 100644
+--- a/tcp/wire.ml
++++ b/tcp/wire.ml
+@@ -30,7 +30,15 @@ let set_options buf ts =
+ let get_payload buf =
+   Cstruct.shift buf (Tcp_wire.get_data_offset buf)
+ 
+-module Make (Ip:V1_LWT.IP) = struct
++module type IP = sig
++  (* XXX: to add to the mirage-types/V1.ml/IP signature *)
++  include V1_LWT.IP
++  val to_string: ipaddr -> string
++  val of_string_exn: string -> ipaddr
++end
++
++module Make (Ip:IP) = struct
++
+   type id = {
+     dest_port: int;               (* Remote TCP port *)
+     dest_ip: Ip.ipaddr;         (* Remote IP address *)
+@@ -38,6 +46,23 @@ module Make (Ip:V1_LWT.IP) = struct
+     local_ip: Ip.ipaddr;        (* Local IP address *)
+   }
+ 
++  let path_of_id { dest_port; dest_ip; local_port; local_ip } =
++    [ Ip.to_string local_ip;
++      string_of_int local_port;
++      Ip.to_string dest_ip;
++      string_of_int dest_port; ]
++
++  let id_of_path = function
++  | [ local_ip; local_port; dest_ip; dest_port ] ->
++    let local_ip = Ip.of_string_exn local_ip in
++    let local_port = int_of_string local_port in
++    let dest_ip = Ip.of_string_exn dest_ip in
++    let dest_port = int_of_string dest_port in
++    { local_ip; local_port; dest_ip; dest_port }
++  | p -> failwith (Printf.sprintf "id_of_path: %s" (String.concat "/" p))
++
++  (* Output a general TCP packet, checksum it, and if a reference is provided,
++     also record the sent packet for retranmission purposes *)
+   let xmit ~ip ~id ?(rst=false) ?(syn=false) ?(fin=false) ?(psh=false)
+       ~rx_ack ~seq ~window ~options datav =
+     (* Make a TCP/IP header frame *)
+diff --git a/tcp/wire.mli b/tcp/wire.mli
+index ef9332e..a796c60 100644
+--- a/tcp/wire.mli
++++ b/tcp/wire.mli
+@@ -18,7 +18,14 @@ val get_options : Cstruct.t -> Options.t list
+ val set_options : Cstruct.t -> Options.t list -> int
+ val get_payload : Cstruct.t -> Cstruct.t
+ 
+-module Make(Ip:V1_LWT.IP) : sig
++module type IP = sig
++  (* XXX: to add to the mirage-types/V1.ml/IP signature *)
++  include V1_LWT.IP
++  val to_string: ipaddr -> string
++  val of_string_exn: string -> ipaddr
++end
++
++module Make(Ip:IP) : sig
+   type id = {
+     dest_port: int;               (* Remote TCP port *)
+     dest_ip: Ip.ipaddr;         (* Remote IP address *)
+@@ -26,6 +33,9 @@ module Make(Ip:V1_LWT.IP) : sig
+     local_ip: Ip.ipaddr;        (* Local IP address *)
+   }
+ 
++  val path_of_id: id -> string list
++  val id_of_path: string list -> id
++
+   val xmit : ip:Ip.t -> id:id ->
+     ?rst:bool -> ?syn:bool -> ?fin:bool -> ?psh:bool ->
+     rx_ack:Sequence.t option -> seq:Sequence.t -> window:int ->
+
+From e63005ee3392b2a603c6f909af963c6720514aab Mon Sep 17 00:00:00 2001
+From: Thomas Gazagnaire <thomas@gazagnaire.org>
+Date: Mon, 19 Jan 2015 18:40:33 +0000
+Subject: [PATCH 4/7] Expose more options to output TX segments
+
+---
+ tcp/segment.ml      | 33 ++++++++++++++++++++++-----------
+ tcp/segment.mli     |  4 ++--
+ tcp/user_buffer.ml  |  5 +++--
+ tcp/user_buffer.mli |  6 +++---
+ 4 files changed, 30 insertions(+), 18 deletions(-)
+
+diff --git a/tcp/segment.ml b/tcp/segment.ml
+index 448d550..85559af 100644
+--- a/tcp/segment.ml
++++ b/tcp/segment.ml
+@@ -367,7 +367,10 @@ module Tx (Time:V1_LWT.TIME) (Clock:V1.CLOCK) = struct
+      The transmitter should check that the segment size will
+      will not be greater than the transmit window.
+   *)
+-  let output ?(flags=No_flags) ?(options=[]) q data =
++  let output ?(flags=No_flags) ?(options=[]) ~xmit ~rexmit q data =
++    let rexmit = false in
++    printf "output xmit=%b rexmit=%b %s\n" xmit rexmit
++      (String.concat "-" (List.map Cstruct.to_string data));
+     (* Transmit the packet to the wire
+          TODO: deal with transmission soft/hard errors here RFC5461 *)
+     let { wnd; _ } = q in
+@@ -376,17 +379,25 @@ module Tx (Time:V1_LWT.TIME) (Clock:V1.CLOCK) = struct
+     let seg = { data; flags; seq } in
+     let seq_len = len seg in
+     TX.tx_advance q.wnd seq_len;
+-    (* Queue up segment just sent for retransmission if needed *)
+-    let q_rexmit () =
+-      match seq_len > 0 with
+-      | false -> return_unit
++    begin match rexmit with
+       | true ->
+-        let _ = Lwt_sequence.add_r seg q.segs in
+-        let p = Window.rto q.wnd in
+-        TT.start q.rexmit_timer ~p seg.seq
+-    in
+-    q_rexmit () >>= fun () ->
+-    q.xmit ~flags ~wnd ~options ~seq data >>= fun _ ->
++        (* Queue up segment just sent for retransmission if needed *)
++        let q_rexmit () =
++          match seq_len > 0 with
++          | false -> return_unit
++          | true ->
++            let _ = Lwt_sequence.add_r seg q.segs in
++            let p = Window.rto q.wnd in
++            TT.start q.rexmit_timer ~p seg.seq
++        in
++        q_rexmit ()
++      | false -> return_unit
++    end >>= fun () ->
++    begin
++      if xmit then q.xmit ~flags ~wnd ~options ~seq data
++      else return_unit
++    end >>= fun () ->
+     (* Inform the RX ack thread that we've just sent one *)
+     Lwt_mvar.put q.rx_ack ack
++
+ end
+diff --git a/tcp/segment.mli b/tcp/segment.mli
+index 1278dd9..624d57d 100644
+--- a/tcp/segment.mli
++++ b/tcp/segment.mli
+@@ -75,8 +75,8 @@ module Tx (Time:V1_LWT.TIME)(Clock:V1.CLOCK) : sig
+     tx_wnd_update:int Lwt_mvar.t -> t * unit Lwt.t
+ 
+   val output:
+-    ?flags:tx_flags -> ?options:Options.t list -> t -> Cstruct.t list ->
+-    unit Lwt.t
++    ?flags:tx_flags -> ?options:Options.t list ->
++    xmit:bool -> rexmit:bool -> t -> Cstruct.t list -> unit Lwt.t
+   (** Queue a segment for transmission. May block if:
+ 
+       {ul
+diff --git a/tcp/user_buffer.ml b/tcp/user_buffer.ml
+index 0525bec..128d9e4 100644
+--- a/tcp/user_buffer.ml
++++ b/tcp/user_buffer.ml
+@@ -232,14 +232,15 @@ module Tx(Time:V1_LWT.TIME)(Clock:V1.CLOCK) = struct
+       | None -> return_unit
+       | Some pkt ->
+         let b = compactbufs pkt in
+-        TXS.output ~flags:Segment.Psh t.txq b >>= fun () ->
++        TXS.output ~flags:Segment.Psh t.txq ~xmit:true ~rexmit:true b
++        >>= fun () ->
+         clear_buffer t
+ 
+   (* Chunk up the segments into MSS max for transmission *)
+   let transmit_segments ~mss ~txq datav =
+     let transmit acc =
+       let b = compactbufs (List.rev acc) in
+-      TXS.output ~flags:Segment.Psh txq b
++      TXS.output ~flags:Segment.Psh ~xmit:true ~rexmit:true txq b
+     in
+     let rec chunk datav acc =
+       match datav with
+diff --git a/tcp/user_buffer.mli b/tcp/user_buffer.mli
+index d1916ef..501df4b 100644
+--- a/tcp/user_buffer.mli
++++ b/tcp/user_buffer.mli
+@@ -30,10 +30,10 @@ module Tx(Time:V1_LWT.TIME)(Clock:V1.CLOCK) : sig
+ 
+   type t
+ 
+-  module TXS : sig
++  module TXS: sig
+     type t = Segment.Tx(Time)(Clock).t
+-    val output : ?flags:Segment.tx_flags -> ?options:Options.t list -> t ->
+-      Cstruct.t list -> unit Lwt.t
++    val output : ?flags:Segment.tx_flags -> ?options:Options.t list ->
++      xmit:bool -> rexmit:bool -> t -> Cstruct.t list -> unit Lwt.t
+   end
+ 
+   val create: max_size:int32 -> wnd:Window.t -> txq:TXS.t -> t
+
+From 6365ec5f849cf2d90348f697188e3860087f36c0 Mon Sep 17 00:00:00 2001
+From: Thomas Gazagnaire <thomas@gazagnaire.org>
+Date: Mon, 19 Jan 2015 18:42:53 +0000
+Subject: [PATCH 5/7] Allow the PCB to be writen and read to and from an
+ abstract K/V store
+
+In practice that K/V store is xenstore. Also add hooks to watch
+segments coming from the store instead of the network. Also implement
+the logic to handover incoming SYN to managed starting domains.
+---
+ tcp/pcb.ml  | 397 +++++++++++++++++++++++++++++++++++++++++++++++++++++++-----
+ tcp/pcb.mli |  23 +++-
+ 2 files changed, 387 insertions(+), 33 deletions(-)
+
+diff --git a/tcp/pcb.ml b/tcp/pcb.ml
+index ff9667b..811ab69 100644
+--- a/tcp/pcb.ml
++++ b/tcp/pcb.ml
+@@ -28,7 +28,51 @@ cstruct pseudo_header {
+     uint16_t len
+   } as big_endian
+ 
+-module Make(Ip:V1_LWT.IP)(Time:V1_LWT.TIME)(Clock:V1.CLOCK)(Random:V1.RANDOM) =
++(* FIXME more generic way to proxy connections *)
++type mode =
++  [ `Fast_start_proxy
++  | `Fast_start_app
++  | `Normal ]
++
++let mode: mode ref = ref `Normal
++let set_mode x = mode := x
++
++module KV: sig
++  module type S = sig
++    val read  : string -> string option Lwt.t
++    val write : (string * string) list -> unit Lwt.t
++    val remove: string -> unit Lwt.t
++    val watch : string -> unit Lwt.t
++    val directory: string -> string list Lwt.t
++  end
++  val set: (module S) -> unit
++  include S
++end = struct
++  module type S = sig
++    val read  : string -> string option Lwt.t
++    val write : (string * string) list -> unit Lwt.t
++    val remove: string -> unit Lwt.t
++    val watch : string -> unit Lwt.t
++    val directory: string -> string list Lwt.t
++  end
++  module D: S = struct
++    let not_set   = (fun _ -> failwith "Not set")
++    let read      = not_set
++    let write     = not_set
++    let remove    = not_set
++    let watch     = not_set
++    let directory = not_set
++  end
++  let t = ref (module D: S)
++  let set r = t := r
++  let read x = let (module M) = !t in M.read x
++  let write x = let (module M) = !t in M.write x
++  let remove x = let (module M) = !t in M.remove x
++  let watch x = let (module M) = !t in M.watch x
++  let directory x = let (module M) = !t in M.directory x
++end
++
++module Make(Ip:Wire.IP)(Time:V1_LWT.TIME)(Clock:V1.CLOCK)(Random:V1.RANDOM) =
+ struct
+ 
+   module RXS = Segment.Rx(Time)
+@@ -57,6 +101,7 @@ struct
+ 
+   type t = {
+     ip : Ip.t;
++    listeners: int -> (pcb -> unit Lwt.t) option;
+     mutable localport : int;
+     channels: (WIRE.id, connection) Hashtbl.t;
+     (* server connections the process of connecting - SYN-ACK sent
+@@ -67,6 +112,8 @@ struct
+     connects: (WIRE.id, (connection_result Lwt.u * Sequence.t)) Hashtbl.t;
+   }
+ 
++  let with_listeners listeners t = { t with listeners }
++
+   let ip { ip; _ } = ip
+ 
+   (*
+@@ -128,7 +175,7 @@ struct
+         UTX.wait_for_flushed pcb.utx >>= fun () ->
+         (let { wnd; _ } = pcb in
+          STATE.tick pcb.state (State.Send_fin (Window.tx_nxt wnd));
+-         TXS.output ~flags:Segment.Fin pcb.txq []
++         TXS.output ~flags:Segment.Fin pcb.txq ~xmit:true ~rexmit:true []
+         )
+       | _ -> return_unit
+ 
+@@ -271,16 +318,175 @@ struct
+       (rx_wnd_scaleoffer, tx_f),
+       (Options.Window_size_shift rx_wnd_scaleoffer :: [])
+ 
+-  type pcb_params =
+-    { tx_wnd: int;
++  module Syn = struct
++
++    type t =
++      { tx_wnd: int;
++        sequence: int32;
++        options: Options.t list;
++        tx_isn: Sequence.t;
++        rx_wnd: int;
++        rx_wnd_scaleoffer: int }
++
++    let short_path_of_id id = String.concat "/" (WIRE.path_of_id id)
++    let path_of_id id = short_path_of_id id ^ "/syn"
++
++    let write _t id params =
++      let { tx_wnd; sequence; options; tx_isn; rx_wnd; rx_wnd_scaleoffer } =
++        params
++      in
++      let path = path_of_id id in
++      let key k = Filename.concat path k in
++      KV.write [
++        key "tx_wnd"           , string_of_int tx_wnd;
++        key "sequence"         , Int32.to_string sequence;
++        key "options"          , Options.to_string options;
++        key "tx_isn"           , Sequence.to_string tx_isn;
++        key "rx_wnd"           , string_of_int rx_wnd;
++        key "rx_wnd_scaleoffer", string_of_int rx_wnd_scaleoffer
++      ]
++
++    let read _t ~clean id =
++      let path = path_of_id id in
++      KV.read path >>= function
++      | None   -> return_none
++      | Some _ ->
++        (* XXX: use a transaction *)
++        let read k = KV.read (Filename.concat path k) in
++        let (>>|) x f =
++          x >>= function
++          | None   -> return_none
++          | Some x -> f x in
++        read "tx_wnd"   >>| fun tx_wnd ->
++        read "sequence" >>| fun sequence ->
++        read "options"  >>| fun options ->
++        read "tx_isn"   >>| fun tx_isn ->
++        read "rx_wnd"   >>| fun rx_wnd ->
++        read "rx_wnd_scaleoffer" >>| fun rx_wnd_scaleoffer ->
++        (if clean then KV.remove (short_path_of_id id) else return_unit) >>= fun () ->
++        try
++          let tx_wnd = int_of_string tx_wnd in
++          let sequence = Int32.of_string sequence in
++          let options = Options.of_string options in
++          let tx_isn = Sequence.of_string tx_isn in
++          let rx_wnd = int_of_string rx_wnd in
++          let rx_wnd_scaleoffer = int_of_string rx_wnd_scaleoffer in
++          return
++            (Some { tx_wnd; sequence; options; tx_isn; rx_wnd; rx_wnd_scaleoffer })
++        with Failure _ ->
++          KV.remove path >>= fun () ->
++          return_none
++
++    let write t id params =
++      let { tx_wnd; sequence; options; tx_isn; rx_wnd; rx_wnd_scaleoffer } =
++        params
++      in
++      let path = path_of_id id in
++      let key k = Filename.concat path k in
++      KV.write [
++        key "tx_wnd"           , string_of_int tx_wnd;
++        key "sequence"         , Int32.to_string sequence;
++        key "options"          , Options.to_string options;
++        key "tx_isn"           , Sequence.to_string tx_isn;
++        key "rx_wnd"           , string_of_int rx_wnd;
++        key "rx_wnd_scaleoffer", string_of_int rx_wnd_scaleoffer
++      ] >>= fun () ->
++      read t ~clean:false id >>= function
++      | Some p ->
++        assert (params = p);
++        return_unit
++      | None ->
++        printf "cannot read syn cookie\n%!";
++        return_unit
++
++  end
++
++  module Data = struct
++
++    type t = Cstruct.t
++
++    let path_of_id id =
++      String.concat "/" (WIRE.path_of_id id) ^ "/data"
++
++    let write t id data =
++      printf "Writing Data cookies.\n";
++      let path = path_of_id id ^ "/" ^ string_of_float (Clock.time ()) in
++      KV.write [path, Cstruct.to_string data]
++
++    let read t id =
++      printf "Reading Data cookies.\n";
++      let path = path_of_id id in
++      begin KV.directory path >>= fun dirs ->
++        Lwt_list.map_s (fun dir ->
++            KV.read (path ^ "/" ^ dir) >>= function
++            | None   -> fail (Failure "read")
++            | Some s -> return s
++          ) dirs
++      end >>= fun ts ->
++      KV.remove path >>= fun () ->
++      return (Some ts)
++
++  end
++
++  module Ack = struct
++
++    type t = {
++      ack_number: int32;
+       sequence: int32;
+-      options: Options.t list;
+-      tx_isn: Sequence.t;
+-      rx_wnd: int;
+-      rx_wnd_scaleoffer: int }
++      syn: bool;
++      fin: bool;
++      pkt: Data.t;
++    }
++
++    let path_of_id id =
++      String.concat "/" (WIRE.path_of_id id) ^ "/ack"
++
++    let write t id params =
++      let { ack_number; sequence; syn; fin; pkt } =
++        params
++      in
++      let path = path_of_id id in
++      let key k = Filename.concat path k in
++      KV.write [
++        key "ack_number", Int32.to_string ack_number;
++        key "sequence"  , Int32.to_string sequence;
++        key "syn"       , string_of_bool syn;
++        key "fin"       , string_of_bool fin;
++        key "pkt"       , Cstruct.to_string pkt;
++      ]
++
++    let read t id =
++      let path = path_of_id id in
++      KV.read path >>= function
++      | None   -> return_none
++      | Some _ ->
++        (* XXX: use a transaction *)
++        let read k = KV.read (Filename.concat path k) in
++        let (>>|) x f =
++          x >>= function
++          | None   -> return_none
++          | Some x -> f x in
++        read "ack_number" >>| fun ack_number ->
++        read "sequence"   >>| fun sequence ->
++        read "syn"        >>| fun syn ->
++        read "fin"        >>| fun fin ->
++        read "pkt"        >>| fun pkt ->
++        KV.remove path    >>= fun () ->
++        try
++          let ack_number = Int32.of_string ack_number in
++          let sequence = Int32.of_string sequence in
++          let syn = bool_of_string syn in
++          let fin = bool_of_string fin in
++          let pkt = Cstruct.of_string pkt in
++          return
++            (Some { ack_number; sequence; syn; fin; pkt })
++        with Failure _ ->
++          return_none
++
++  end
+ 
+   let new_pcb t params id =
+-    let { tx_wnd; sequence; options; tx_isn; rx_wnd; rx_wnd_scaleoffer } =
++    let { Syn.tx_wnd; sequence; options; tx_isn; rx_wnd; rx_wnd_scaleoffer } =
+       params
+     in
+     let tx_mss = List.fold_left (fun a ->
+@@ -339,20 +545,52 @@ struct
+     Gc.finalise fnth th;
+     return (pcb, th, opts)
+ 
+-  let new_server_connection t params id pushf =
++  let is_not_for_me t id =
++     not (List.mem id.WIRE.local_ip (Ip.get_ip t.ip))
++
++  let is_managed id =
++    let ip = Ip.to_string id.WIRE.local_ip in
++    KV.read ip >>= function
++    | Some "managed" -> return true
++    | _ -> return false
++
++  let new_server_connection t ~xmit params id pushf =
+     new_pcb t params id >>= fun (pcb, th, opts) ->
+     STATE.tick pcb.state State.Passive_open;
+-    STATE.tick pcb.state (State.Send_synack params.tx_isn);
++    STATE.tick pcb.state (State.Send_synack params.Syn.tx_isn);
+     (* Add the PCB to our listens table *)
+-    Hashtbl.replace t.listens id (params.tx_isn, (pushf, (pcb, th)));
++    begin if !mode = `Fast_start_proxy && is_not_for_me t id then (
++        let ip = Ip.to_string id.WIRE.local_ip in
++        is_managed id >>= function
++        | true ->
++          printf "%s has already started, no need to manage SYN packets on \
++                  its behalf." ip;
++          return_unit
++        | false ->
++          printf
++            "Proxy in fast-start mode, writing the SYN parameters in \
++             xenstore ...\n";
++          (* If running in `fast-start` proxy mode, simply hand over the
++               connection parameters to the app. *)
++          Syn.write t id params
++      ) else (
++        Hashtbl.replace t.listens id (params.Syn.tx_isn, (pushf, (pcb, th)));
++        return_unit
++      )
++    end >>= fun () ->
+     (* Queue a SYN ACK for transmission *)
+     let options = Options.MSS 1460 :: opts in
+-    TXS.output ~flags:Segment.Syn ~options pcb.txq [] >>= fun () ->
+-    return (pcb, th)
++    begin if xmit then (
++      let rexmit = !mode <> `Fast_start_proxy in
++      TXS.output ~flags:Segment.Syn ~options pcb.txq ~rexmit ~xmit []
++      ) else
++        return_unit
++    end >>= fun () ->
++    return_unit
+ 
+   let new_client_connection t params id ack_number =
+-    let tx_isn = params.tx_isn in
+-    let params = { params with tx_isn = Sequence.incr tx_isn } in
++    let tx_isn = params.Syn.tx_isn in
++    let params = { params with Syn.tx_isn = Sequence.incr tx_isn } in
+     new_pcb t params id >>= fun (pcb, th, _) ->
+     (* A hack here because we create the pcb only after the SYN-ACK is rx-ed*)
+     STATE.tick pcb.state (State.Send_syn tx_isn);
+@@ -360,11 +598,12 @@ struct
+     Hashtbl.add t.channels id (pcb, th);
+     STATE.tick pcb.state (State.Recv_synack (Sequence.of_int32 ack_number));
+     (* xmit ACK *)
+-    TXS.output pcb.txq [] >>= fun () ->
++    TXS.output pcb.txq ~xmit:true ~rexmit:true [] >>= fun () ->
+     return (pcb, th)
+ 
+   let process_reset t id =
+-    match hashtbl_find t.connects id with
++    if is_not_for_me t id then return_unit
++    else match hashtbl_find t.connects id with
+     | Some (wakener, _) ->
+       (* URG_TODO: check if RST ack num is valid before it is accepted *)
+       Hashtbl.remove t.connects id;
+@@ -382,6 +621,8 @@ struct
+         return_unit
+ 
+   let process_synack t id ~pkt ~ack_number ~sequence ~options ~syn ~fin =
++    if is_not_for_me t id then return_unit
++    else (
+     match hashtbl_find t.connects id with
+     | Some (wakener, tx_isn) ->
+       if Sequence.(to_int32 (incr tx_isn)) = ack_number then (
+@@ -392,7 +633,7 @@ struct
+            sent in the SYN *)
+         let rx_wnd_scaleoffer = wscale_default in
+         new_client_connection t
+-          { tx_wnd; sequence; options; tx_isn; rx_wnd; rx_wnd_scaleoffer }
++          { Syn.tx_wnd; sequence; options; tx_isn; rx_wnd; rx_wnd_scaleoffer }
+           id ack_number
+         >>= fun (pcb, th) ->
+         Lwt.wakeup wakener (`Ok (pcb, th));
+@@ -406,25 +647,53 @@ struct
+       (* Incomming SYN-ACK with no pending connect and no matching pcb
+          - send RST *)
+       Tx.send_rst t id ~sequence ~ack_number ~syn ~fin
++    )
+ 
+-  let process_syn t id ~listeners ~pkt ~ack_number ~sequence ~options ~syn ~fin =
+-    match listeners id.WIRE.local_port with
++  let process_syn t id ~pkt ~ack_number ~sequence ~options ~syn ~fin =
++    (* In fast-start mode an app never replies to SYN packets. A proxy
++       in fast-start mode replies to all the SYNS. *)
++    if (!mode <> `Fast_start_proxy && is_not_for_me t id) then (
++      printf "ignoring SYN packet\n";
++      return_unit
++    ) else (
++    begin if !mode = `Fast_start_proxy then is_managed id else return false end
++    >>= function
++    | true -> printf "proxy ignoring SYN packet\n"; return_unit
++    | false ->
++    (* XXX: we should bypass that in the proxy case *)
++    match t.listeners id.WIRE.local_port with
+     | Some pushf ->
+       let tx_isn = Sequence.of_int ((Random.int 65535) + 0x1AFE0000) in
+       let tx_wnd = Tcp_wire.get_tcp_window pkt in
+       (* TODO: make this configurable per listener *)
+       let rx_wnd = 65535 in
+       let rx_wnd_scaleoffer = wscale_default in
+-      new_server_connection t
+-        { tx_wnd; sequence; options; tx_isn; rx_wnd; rx_wnd_scaleoffer }
++      new_server_connection t ~xmit:(not (is_not_for_me t id))
++        { Syn.tx_wnd; sequence; options; tx_isn; rx_wnd; rx_wnd_scaleoffer }
+         id pushf
+-      >>= fun _ ->
++      >>= fun () ->
+       return_unit
+     | None ->
+       Tx.send_rst t id ~sequence ~ack_number ~syn ~fin
++    )
++
++  let process_syn_cookies t id =
++    match t.listeners id.WIRE.local_port with
++    | None -> return_unit
++    | Some pushf ->
++      Syn.read t ~clean:true id >>= function
++      | Some params ->
++        printf "Found SYN cookies.\n";
++        new_server_connection t ~xmit:true params id pushf >>= fun () ->
++        return_unit
++      | None ->
++        printf "No SYN cookies.\n";
++        return_unit
++        >>= fun _ -> return_unit
+ 
+   let process_ack t id ~pkt ~ack_number ~sequence ~syn ~fin =
+-    match hashtbl_find t.listens id with
++    if is_not_for_me t id then return_unit
++    else match hashtbl_find t.listens id with
+     | Some (tx_isn, (pushf, newconn)) ->
+       if Sequence.(to_int32 (incr tx_isn)) = ack_number then (
+         (* Established connection - promote to active channels *)
+@@ -446,7 +715,33 @@ struct
+         (* ACK but no matching pcb and no listen - send RST *)
+         Tx.send_rst t id ~sequence ~ack_number ~syn ~fin
+ 
+-  let input_no_pcb t listeners pkt id =
++  let process_ack_cookies t id =
++    Ack.read t id >>= function
++    | None -> printf "No ACK cookies.\n"; return_unit
++    | Some { Ack.ack_number; sequence; syn; fin; pkt } ->
++      match hashtbl_find t.listens id with
++      | Some (tx_isn, (pushf, newconn)) ->
++        if Sequence.(to_int32 (incr tx_isn)) = ack_number then (
++          (* Established connection - promote to active channels *)
++          Hashtbl.remove t.listens id;
++          Hashtbl.add t.channels id newconn;
++          (* Finish processing ACK, so pcb.state is correct *)
++          Rx.input t pkt newconn >>= fun () ->
++          (* send new connection up to listener *)
++          pushf (fst newconn)
++        ) else
++          (* No RST because we are trying to connect on this id *)
++          return_unit
++      | None ->
++        match hashtbl_find t.connects id with
++        | Some _ ->
++          (* No RST because we are trying to connect on this id *)
++          return_unit
++        | None ->
++          (* ACK but no matching pcb and no listen - send RST *)
++          Tx.send_rst t id ~sequence ~ack_number ~syn ~fin
++
++  let input_no_pcb t pkt id =
+     match verify_checksum id pkt with
+     | false -> printf "RX.input: checksum error\n%!"; return_unit
+     | true ->
+@@ -462,7 +757,7 @@ struct
+         match syn, ack with
+         | true , true  -> process_synack t id ~pkt ~ack_number ~sequence
+                             ~options ~syn ~fin
+-        | true , false -> process_syn t id ~listeners ~pkt ~ack_number ~sequence
++        | true , false -> process_syn t id ~pkt ~ack_number ~sequence
+                             ~options ~syn ~fin
+         | false, true  -> process_ack t id ~pkt ~ack_number ~sequence ~syn ~fin
+         | false, false ->
+@@ -470,7 +765,7 @@ struct
+           return_unit
+ 
+   (* Main input function for TCP packets *)
+-  let input t ~listeners ~src ~dst data =
++  let input t ~src ~dst data =
+     let source_port = Tcp_wire.get_tcp_src_port data in
+     let dest_port = Tcp_wire.get_tcp_dst_port data in
+     let id =
+@@ -484,7 +779,7 @@ struct
+       (* PCB exists, so continue the connection state machine in tcp_input *)
+       (Rx.input t data)
+       (* No existing PCB, so check if it is a SYN for a listening function *)
+-      (input_no_pcb t listeners data)
++      (input_no_pcb t data)
+ 
+   (* Blocking read on a PCB *)
+   let read pcb =
+@@ -595,6 +890,47 @@ struct
+     let _ = connecttimer t id tx_isn options window 0 in
+     th
+ 
++  let watchers = Hashtbl.create 4
++
++  let watch t =
++    let ips = List.map Ip.to_string (Ip.get_ip t.ip) in
++    let read_xs ip =
++      KV.directory ip >>= fun ports ->
++      printf "Ports: %s\n" (String.concat " " ports);
++      Lwt_list.fold_left_s (fun acc port ->
++          KV.directory (sprintf "%s/%s" ip port) >>= fun dest_ips ->
++          printf "Dest-ip: %s\n" (String.concat " " dest_ips);
++          Lwt_list.fold_left_s (fun acc dest_ip ->
++              KV.directory (sprintf "%s/%s/%s" ip port dest_ip) >>=
++              fun dest_ports ->
++              printf "Dest-ports: %s\n" (String.concat " " dest_ports);
++              Lwt_list.fold_left_s (fun acc dest_port ->
++                  let id = WIRE.id_of_path [ip; port; dest_ip; dest_port] in
++                  return (id :: acc)
++                ) acc dest_ports
++            ) acc dest_ips
++        ) [] ports
++      >>= fun ids ->
++      printf "Found %d started connections.\n" (List.length ids);
++      Lwt_list.iter_p (fun id ->
++          Lwt.catch
++            (fun () -> process_syn_cookies t id)
++            (fun e -> printf "Error: %s" (Printexc.to_string e); return_unit)
++        ) ids >>= fun () ->
++      return_unit
++    in
++    if !mode = `Fast_start_app && not (Hashtbl.mem watchers t.ip) then (
++      printf "FAST-START mode. Watching xenstore for incoming SYN!\n";
++      Hashtbl.add watchers t.ip ();
++      Lwt_list.iter_p (fun ip ->
++          KV.write [ ip, "managed" ] >>= fun () ->
++          read_xs ip
++        ) ips
++    ) else (
++      printf "NORMAL mode.\n";
++      return_unit
++    )
++
+   (* Construct the main TCP thread *)
+   let create ip =
+     let _ = Random.self_init () in
+@@ -602,6 +938,7 @@ struct
+     let listens = Hashtbl.create 1 in
+     let connects = Hashtbl.create 1 in
+     let channels = Hashtbl.create 7 in
+-    { ip; localport; channels; listens; connects }
++    let listeners = fun _ -> None in
++    { ip; localport; channels; listens; connects; listeners }
+ 
+ end
+diff --git a/tcp/pcb.mli b/tcp/pcb.mli
+index dcbf859..321041e 100644
+--- a/tcp/pcb.mli
++++ b/tcp/pcb.mli
+@@ -14,7 +14,21 @@
+  * OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
+  *)
+ 
+-module Make(Ip:V1_LWT.IP)(Time:V1_LWT.TIME)(Clock:V1.CLOCK)(Random:V1.RANDOM) : sig
++module KV: sig
++  module type S = sig
++    val read  : string -> string option Lwt.t
++    val write : (string * string) list -> unit Lwt.t
++    val remove: string -> unit Lwt.t
++    val watch : string -> unit Lwt.t
++    val directory: string -> string list Lwt.t
++  end
++  val set: (module S) -> unit
++  include S
++end
++
++val set_mode: [ `Fast_start_proxy | `Fast_start_app | `Normal ] -> unit
++
++module Make(Ip:Wire.IP)(Time:V1_LWT.TIME)(Clock:V1.CLOCK)(Random:V1.RANDOM) : sig
+ 
+   (** Overall state of the TCP stack *)
+   type t
+@@ -29,8 +43,9 @@ module Make(Ip:V1_LWT.IP)(Time:V1_LWT.TIME)(Clock:V1.CLOCK)(Random:V1.RANDOM) :
+ 
+   val ip : t -> Ip.t
+ 
+-  val input: t -> listeners:(int -> (pcb -> unit Lwt.t) option)
+-    -> src:Ip.ipaddr -> dst:Ip.ipaddr -> Cstruct.t -> unit Lwt.t
++  val input: t -> src:Ip.ipaddr -> dst:Ip.ipaddr -> Cstruct.t -> unit Lwt.t
++
++  val with_listeners: (int -> (pcb -> unit Lwt.t) option) -> t -> t
+ 
+   val connect: t -> dest_ip:Ip.ipaddr -> dest_port:int -> connection_result Lwt.t
+ 
+@@ -57,4 +72,6 @@ module Make(Ip:V1_LWT.IP)(Time:V1_LWT.TIME)(Clock:V1.CLOCK)(Random:V1.RANDOM) :
+ 
+   val create: Ip.t -> t
+   (* val tcpstats: t -> unit *)
++
++  val watch: t -> unit Lwt.t
+ end
+
+From 1ad8fecc80eeff6a33aaf3039a8a2bb080c0db35 Mon Sep 17 00:00:00 2001
+From: Thomas Gazagnaire <thomas@gazagnaire.org>
+Date: Mon, 19 Jan 2015 18:47:04 +0000
+Subject: [PATCH 6/7] Adapt to the "serializable PCB" API changes
+
+---
+ lib/tcpip_stack_direct.ml  | 21 ++++++++++++++++++---
+ lib/tcpip_stack_direct.mli |  6 ++++--
+ tcp/flow.ml                |  9 +++++++--
+ tcp/flow.mli               | 11 +++++++----
+ unix/ipv4_unix.ml          |  2 ++
+ unix/ipv6_unix.ml          |  2 ++
+ 6 files changed, 40 insertions(+), 11 deletions(-)
+
+diff --git a/lib/tcpip_stack_direct.ml b/lib/tcpip_stack_direct.ml
+index e4aaf8d..467383c 100644
+--- a/lib/tcpip_stack_direct.ml
++++ b/lib/tcpip_stack_direct.ml
+@@ -20,8 +20,10 @@ type direct_ipv4_input = src:Ipaddr.V4.t -> dst:Ipaddr.V4.t -> Cstruct.t -> unit
+ module type UDPV4_DIRECT = V1_LWT.UDPV4
+   with type ipinput = direct_ipv4_input
+ 
+-module type TCPV4_DIRECT = V1_LWT.TCPV4
+-  with type ipinput = direct_ipv4_input
++module type TCPV4_DIRECT = sig
++  include V1_LWT.TCPV4 with type ipinput = direct_ipv4_input
++  val watch: t -> listeners:(int -> callback option) ->  unit Lwt.t
++end
+ 
+ module Make
+     (Console : V1_LWT.CONSOLE)
+@@ -121,9 +123,18 @@ struct
+     try Some (Hashtbl.find t.udpv4_listeners dst_port)
+     with Not_found -> None
+ 
++  let default_tcpv4_listeners t =
++    try
++      let res = Some (Hashtbl.find t.tcpv4_listeners (-1)) in
++      Printf.printf "Found a default tcp listener\n";
++      res
++    with Not_found ->
++      Printf.printf "No default tcp listener\n";
++      None
++
+   let tcpv4_listeners t dst_port =
+     try Some (Hashtbl.find t.tcpv4_listeners dst_port)
+-    with Not_found -> None
++    with Not_found -> default_tcpv4_listeners t
+ 
+   let listen t =
+     Netif.listen t.netif (
+@@ -140,6 +151,9 @@ struct
+         ~ipv6:(fun _ -> return_unit)
+         t.ethif)
+ 
++  let watch t =
++    Tcpv4.watch t.tcpv4 ~listeners:(tcpv4_listeners t)
++
+   let connect id =
+     let { V1_LWT.console = c; interface = netif; mode; _ } = id in
+     let or_error fn t err =
+@@ -167,6 +181,7 @@ struct
+     let _ = listen t in
+     configure t t.mode
+     >>= fun () ->
++    ignore_result (watch t);
+     (* TODO: this is fine for now, because the DHCP state machine isn't fully
+        implemented and its thread will terminate after one successful lease
+        transaction.  For a DHCP thread that runs forever, `configure` will need
+diff --git a/lib/tcpip_stack_direct.mli b/lib/tcpip_stack_direct.mli
+index ef7b7ef..929322d 100644
+--- a/lib/tcpip_stack_direct.mli
++++ b/lib/tcpip_stack_direct.mli
+@@ -18,8 +18,10 @@ type direct_ipv4_input = src:Ipaddr.V4.t -> dst:Ipaddr.V4.t -> Cstruct.t -> unit
+ module type UDPV4_DIRECT = V1_LWT.UDPV4
+   with type ipinput = direct_ipv4_input
+ 
+-module type TCPV4_DIRECT = V1_LWT.TCPV4
+-  with type ipinput = direct_ipv4_input
++module type TCPV4_DIRECT = sig
++  include V1_LWT.TCPV4 with type ipinput = direct_ipv4_input
++  val watch: t -> listeners:(int -> callback option) ->  unit Lwt.t
++end
+ 
+ module Make
+     (Console : V1_LWT.CONSOLE)
+diff --git a/tcp/flow.ml b/tcp/flow.ml
+index ee432c3..7d1726f 100644
+--- a/tcp/flow.ml
++++ b/tcp/flow.ml
+@@ -16,7 +16,7 @@
+ 
+ open Lwt
+ 
+-module Make(IP:V1_LWT.IP)(TM:V1_LWT.TIME)(C:V1.CLOCK)(R:V1.RANDOM) = struct
++module Make(IP:Wire.IP)(TM:V1_LWT.TIME)(C:V1.CLOCK)(R:V1.RANDOM) = struct
+ 
+   module Pcb = Pcb.Make(IP)(TM)(C)(R)
+ 
+@@ -76,11 +76,16 @@ module Make(IP:V1_LWT.IP)(TM:V1_LWT.TIME)(C:V1.CLOCK)(R:V1.RANDOM) = struct
+       return (`Ok fl)
+ 
+   let input t ~listeners ~src ~dst buf =
+-    Pcb.input t ~listeners ~src ~dst buf
++    let t = Pcb.with_listeners listeners t in
++    Pcb.input t ~src ~dst buf
+ 
+   let connect ipv4 =
+     return (`Ok (Pcb.create ipv4))
+ 
+   let disconnect _ =
+     return_unit
++
++  let watch t ~listeners =
++    let t = Pcb.with_listeners listeners t in
++    Pcb.watch t
+ end
+diff --git a/tcp/flow.mli b/tcp/flow.mli
+index 5bd05a7..a0e2334 100644
+--- a/tcp/flow.mli
++++ b/tcp/flow.mli
+@@ -15,7 +15,10 @@
+  *)
+ 
+ 
+-module Make (IP:V1_LWT.IP)(TM:V1_LWT.TIME)(C:V1.CLOCK)(R:V1.RANDOM) : V1_LWT.TCP
+-  with type ip = IP.t
+-   and type ipaddr = IP.ipaddr
+-   and type ipinput = src:IP.ipaddr -> dst:IP.ipaddr -> Cstruct.t -> unit Lwt.t
++module Make (IP:Wire.IP)(TM:V1_LWT.TIME)(C:V1.CLOCK)(R:V1.RANDOM) : sig
++  include V1_LWT.TCP
++    with type ip = IP.t
++     and type ipaddr = IP.ipaddr
++     and type ipinput = src:IP.ipaddr -> dst:IP.ipaddr -> Cstruct.t -> unit Lwt.t
++  val watch: t -> listeners:(int -> callback option) ->  unit Lwt.t
++end
+diff --git a/unix/ipv4_unix.ml b/unix/ipv4_unix.ml
+index f7be1f3..df8def2 100644
+--- a/unix/ipv4_unix.ml
++++ b/unix/ipv4_unix.ml
+@@ -1 +1,3 @@
+ include Ipv4.Make(Ethif_unix)
++let to_string = Ipaddr.V4.to_string
++let of_string_exn = Ipaddr.V4.of_string_exn
+diff --git a/unix/ipv6_unix.ml b/unix/ipv6_unix.ml
+index 02db26f..705fb12 100644
+--- a/unix/ipv6_unix.ml
++++ b/unix/ipv6_unix.ml
+@@ -1 +1,3 @@
+ include Ipv6.Make (Ethif_unix) (OS.Time) (Clock)
++let to_string = Ipaddr.V6.to_string ~v4:false
++let of_string_exn = Ipaddr.V6.of_string_exn
+
+From db246b52bbefc1a1608eaeff56324450e7b2ac3e Mon Sep 17 00:00:00 2001
+From: Thomas Gazagnaire <thomas@gazagnaire.org>
+Date: Mon, 19 Jan 2015 18:47:45 +0000
+Subject: [PATCH 7/7] HACK: hard-code the ARP information
+
+This should be removed and replaced by something cleaner when JITSU will itself
+manages the domain/ARP/IP tables
+---
+ lib/arpv4.ml | 7 +++++++
+ 1 file changed, 7 insertions(+)
+
+diff --git a/lib/arpv4.ml b/lib/arpv4.ml
+index 6c424e5..5890be6 100644
+--- a/lib/arpv4.ml
++++ b/lib/arpv4.ml
+@@ -188,5 +188,12 @@ module Make (Ethif : V1_LWT.ETHIF) = struct
+     let cache = Hashtbl.create 7 in
+     let pending = Hashtbl.create 7 in
+     let bound_ips = [] in
++    let add ip mac =
++      let spa = Ipaddr.V4.of_string_exn ip in
++      let sha = Macaddr.of_string_exn mac in
++      Hashtbl.replace cache spa (Lwt.return sha);
++    in
++    add "192.168.2.1" "5e:f9:38:f8:f1:64";
++    add "10.0.1.1"    "00:25:90:2c:e7:91";
+     { ethif; cache; pending; bound_ips }
+ end

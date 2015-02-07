@@ -3,12 +3,15 @@
 TEST_PATH=$(dirname $0)
 RESULT_PATH=$(pwd)
 
-MIRAGE_VER=2.0.0
+MIRAGE_VER=2.2
 echo "This test requires $MIRAGE_VER"
 opam list mirage | grep $MIRAGE_VER && echo "Mirage $MIRAGE_VER found" || exit -1
 
-echo "This test requires tcpip to be pinned to https://github.com/samoht/mirage-tcpip#fast-start"
-opam info tcpip | grep upstream | grep samoht || exit -1
+#echo "This test requires tcpip to be pinned to https://github.com/samoht/mirage-tcpip#fast-start"
+#opam info tcpip | grep upstream | grep samoht || exit -1
+
+echo "This test requires tcpip to be patched with fast-start."
+opam info tcpip | grep pinned && echo "Pin found. Continuing... (not checked for correct patch)" || exit -1
 
 eval `opam config env`
 
@@ -22,11 +25,18 @@ if [ "$VIRSH_VERSION" != "1.2.8" ]; then
 fi
 
 # make sure libvirt is running
-sudo /etc/init.d/libvirt-bin start || exit -1
+initctl list | grep libvirtd || exit -1
+sudo start libvirtd
+
 # kill old jitsus (if any)
 sudo pkill jitsu
 
 # install jitsu
+if [ ! -d "$TEST_PATH" ]; then
+        echo "Remote $TEST_PATH not found. Exiting"
+        exit -1
+fi
+
 cd $TEST_PATH || exit -1
 opam install lwt dns libvirt -y || exit -1
 if [ -d "jitsu" ]; then
@@ -45,7 +55,11 @@ cd - || \
 exit -1
 
 # make sure old unikernel is not running
+
+# disable delays in bridge, set in "hub mode"
+sudo brctl stp br0 off
 sudo brctl setageing br0 0
+sudo brctl setfd br0 0
 
 # setup unikernel
 
