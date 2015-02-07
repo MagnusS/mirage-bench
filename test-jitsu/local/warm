@@ -26,7 +26,7 @@ if [ $IN_OSX == 1 ]; then
 	IF=$(route -n get $REMOTE_IP | grep interface | cut -d":" -f2 | tr -d " ")
 	TCPDUMP=tcpdump
 else # linux
-	IF=$(ip route get 10.0.1.140 | grep dev | cut -f 3 -d " " | tr -d ' ')
+	IF=$(ip route get $UNIKERNEL_IP1 | grep dev | cut -f 3 -d " " | tr -d ' ')
 	TCPDUMP="sudo tcpdump"
 fi
 

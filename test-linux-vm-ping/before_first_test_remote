@@ -13,7 +13,7 @@ sudo xl destroy linux-guest-1
 sudo xl create $TEST_PATH/test-linux-vm.conf || exit -1
 
 echo "Waiting for VM to respond to ping..."
-while sudo ping -w 1 -c 1 10.0.1.145 ; do
+while sudo ping -w 1 -c 1 $LINUX_GUEST_IP1 ; do
 	sleep 1
 	echo "Retrying..."
 done
