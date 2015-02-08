@@ -139,7 +139,26 @@ run: | sync_time sync_tests
 
 	# copy environment to remote 
 	$(SCP) $(LOCAL_RESULTS_ROOT_PATH)/local_environment $(REMOTE_USER)@$(REMOTE_HOST):$(REMOTE_RESULTS_ROOT_PATH)/remote_environment
-	
+
+	# store opam universe
+	@echo "Local opam universe"
+	opam switch export $(LOCAL_RESULTS_ROOT_PATH)/local_opam_universe 
+	cat $(LOCAL_RESULTS_ROOT_PATH)/local_opam_universe
+	@echo "Local opam pins"
+	touch $(LOCAL_RESULTS_ROOT_PATH)/local_opam_pins
+	opam pin | tee $(LOCAL_RESULTS_ROOT_PATH)/local_opam_pins
+	# pins
+	opam pin | cut -f2- -d"/" | xargs -n 1 echo / | sed "s#/ #/#g" | xargs -I path -t git -C path rev-parse HEAD | tee -a $(LOCAL_RESULTS_ROOT_PATH)/local_opam_pins
+	# diffs
+	opam pin | cut -f2- -d"/" | xargs -n 1 echo / | sed "s#/ #/#g" | xargs -I path -t sh -c 'git -C path --no-pager diff | tee opam_pin_$(echo path | sed s#/#_#g).diff'
+	@echo "Remote opam universe"
+	$(SSH_EXEC) "opam switch export $(REMOTE_RESULTS_ROOT_PATH)/remote_opam_universe ; cat $(REMOTE_RESULTS_ROOT_PATH)/remote_opam_universe"
+	@echo "Remote opam pins"
+	$(SSH_EXEC) "touch $(REMOTE_RESULTS_ROOT_PATH)/remote_opam_pins"
+	$(SSH_EXEC) "opam pin | tee $(REMOTE_RESULTS_ROOT_PATH)/remote_opam_pins"
+	$(SSH_EXEC) "opam pin | cut -f2- -d'/' | xargs -n 1 echo / | sed 's#/ #/#g' | xargs -I path -t git -C path rev-parse HEAD | tee -a $(REMOTE_RESULTS_ROOT_PATH)/remote_opam_pins"
+	$(SSH_EXEC) "opam pin | cut -f2- -d'/' | xargs -n 1 echo / | sed 's#/ #/#g' | xargs -I path -t sh -c 'git -C path --no-pager diff > opam_pin_$(echo path | sed s#/#_#g).diff'"
+
 	# execute before_first_test if it exists
 	test -x "$(LOCAL_TEST_ROOT_PATH)/before_first_test_local" && cd $(LOCAL_RESULTS_ROOT_PATH) && "$(LOCAL_TEST_ROOT_PATH)/before_first_test_local" 2>&1 | tee -a run_local.log
 
