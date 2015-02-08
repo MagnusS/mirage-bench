@@ -44,8 +44,14 @@ if [ -d "jitsu" ]; then
 else
     git clone https://github.com/MagnusS/jitsu.git jitsu || exit -1
 fi
-cd jitsu && git checkout 0cc21d82eb741da0a885414d6822c2cf562af527 && cd - || exit -1
-curl https://raw.githubusercontent.com/MagnusS/jitsu/master/add_vif.c -o jitsu/add_vif.c
+#cd jitsu && git checkout 0cc21d82eb741da0a885414d6822c2cf562af527 && cd - || exit -1
+#curl https://raw.githubusercontent.com/MagnusS/jitsu/master/add_vif.c -o jitsu/add_vif.c
+cd jitsu && git checkout cfa23339ed869fe7bac0511a2b96744de6bb381c && cd - || exit -1
+
+echo "jitsu commit is"
+cd jitsu && git rev-parse HEAD && cd -
+echo "jitsu branch is"
+cd jitsu && git branch && cd -
 
 cd $TEST_PATH/jitsu && \
 make && \
@@ -57,8 +63,11 @@ exit -1
 # make sure old unikernel is not running
 
 # disable delays in bridge, set in "hub mode"
+echo "disable stp"
 sudo brctl stp br0 off
+echo "set ageing 0"
 sudo brctl setageing br0 0
+echo "set fd 0"
 sudo brctl setfd br0 0
 
 # setup unikernel
