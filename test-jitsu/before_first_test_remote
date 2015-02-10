@@ -4,7 +4,7 @@ TEST_PATH=$(dirname $0)
 RESULT_PATH=$(pwd)
 
 MIRAGE_VER=2.2
-echo "This test requires $MIRAGE_VER"
+echo "This test requires Mirage $MIRAGE_VER"
 opam list mirage | grep $MIRAGE_VER && echo "Mirage $MIRAGE_VER found" || exit -1
 
 #echo "This test requires tcpip to be pinned to https://github.com/samoht/mirage-tcpip#fast-start"
@@ -60,6 +60,11 @@ strip scripts/fast-vif-bridge && \
 cd - || \
 exit -1
 
+# setting up pins
+opam pin add mirage-net-xen 1.2.0 -y -n
+opam pin add tcpip 'https://github.com/samoht/mirage-tcpip#fast-start-3' -y -n
+opam pin add mirage-types 'https://github.com/samoht/mirage#uip' -y # both mirage-net-xen and tcpip depends on mirage-types, so only recompile here
+
 # make sure old unikernel is not running
 
 # disable delays in bridge, set in "hub mode"
@@ -96,10 +101,6 @@ function make_unikernel () {
 	cat dispatch.ml && \
 	mirage clean && \
 	mirage configure --xen && \
-        echo "WARNING WARNING : Replacing Ipv4 with Ipv4_fix in generated code" && \
-        mv main.ml main.orig.ml && \
-        cat main.orig.ml | \
-        sed "s/Ipv4.Make/Ipv4_fix.Make/g" > main.ml && \
 	mirage build && \
 	cp mir-www.xen $file && \
 	cd .. || \
@@ -180,3 +181,6 @@ make_unikernel synjitsu $UNIKERNEL_IP5 $UNIKERNEL_MAC5 $RESULT_PATH/synjitsu.xen
 
 # Remove ip from xenstore, just in case
 sudo xenstore-rm /ip
+
+# disabling remote cron
+sudo service cron stop
