@@ -1,4 +1,5 @@
 from scapy.all import *
+import sys
 
 def error(msg):
 	print "!",msg,"(",sys.argv[1],")"
@@ -126,9 +127,8 @@ if not http_request_ok:
 
 #7
 http_response_ok = False
-# TODO payload > 0 does not always work here - it could pick the wrong packet
 for p in myreader:
-	if TCP in p and p[TCP].flags & ACK == ACK and p[IP].src == vm_ip and p[IP].dst == client_ip and p[IP].sport == 80 and p[TCP].seq == tcp_ack and len(p.payload) > 0:
+	if TCP in p and p[TCP].flags & ACK == ACK and p[IP].src == vm_ip and p[IP].dst == client_ip and p[IP].sport == 80 and p[TCP].seq == tcp_ack and len(p[TCP].payload) > 0:
 		tcp_seq = p[TCP].seq # set new seq
 		tcp_ack = p[TCP].ack
 		print "#",p.time-t0,"Send HTTP response from",vm_ip,"to",client_ip
@@ -137,6 +137,7 @@ for p in myreader:
 
 if not http_response_ok:
 	error("HTTP response not found")
+
 
 print p.time - t0
 
