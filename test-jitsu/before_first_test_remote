@@ -3,12 +3,15 @@
 TEST_PATH=$(dirname $0)
 RESULT_PATH=$(pwd)
 
-MIRAGE_VER=2.0.0
-echo "This test requires $MIRAGE_VER"
+MIRAGE_VER=2.2
+echo "This test requires Mirage $MIRAGE_VER"
 opam list mirage | grep $MIRAGE_VER && echo "Mirage $MIRAGE_VER found" || exit -1
 
-echo "This test requires tcpip to be pinned to https://github.com/samoht/mirage-tcpip#fast-start"
-opam info tcpip | grep upstream | grep samoht || exit -1
+#echo "This test requires tcpip to be pinned to https://github.com/samoht/mirage-tcpip#fast-start"
+#opam info tcpip | grep upstream | grep samoht || exit -1
+
+echo "This test requires tcpip to be patched with fast-start."
+opam info tcpip | grep pinned && echo "Pin found. Continuing... (not checked for correct patch)" || exit -1
 
 eval `opam config env`
 
@@ -22,11 +25,18 @@ if [ "$VIRSH_VERSION" != "1.2.8" ]; then
 fi
 
 # make sure libvirt is running
-sudo /etc/init.d/libvirt-bin start || exit -1
+initctl list | grep libvirtd || exit -1
+sudo start libvirtd
+
 # kill old jitsus (if any)
 sudo pkill jitsu
 
 # install jitsu
+if [ ! -d "$TEST_PATH" ]; then
+        echo "Remote $TEST_PATH not found. Exiting"
+        exit -1
+fi
+
 cd $TEST_PATH || exit -1
 opam install lwt dns libvirt -y || exit -1
 if [ -d "jitsu" ]; then
@@ -34,8 +44,14 @@ if [ -d "jitsu" ]; then
 else
     git clone https://github.com/MagnusS/jitsu.git jitsu || exit -1
 fi
-cd jitsu && git checkout 0cc21d82eb741da0a885414d6822c2cf562af527 && cd - || exit -1
-curl https://raw.githubusercontent.com/MagnusS/jitsu/master/add_vif.c -o jitsu/add_vif.c
+#cd jitsu && git checkout 0cc21d82eb741da0a885414d6822c2cf562af527 && cd - || exit -1
+#curl https://raw.githubusercontent.com/MagnusS/jitsu/master/add_vif.c -o jitsu/add_vif.c
+cd jitsu && git checkout cfa23339ed869fe7bac0511a2b96744de6bb381c && cd - || exit -1
+
+echo "jitsu commit is"
+cd jitsu && git rev-parse HEAD && cd -
+echo "jitsu branch is"
+cd jitsu && git branch && cd -
 
 cd $TEST_PATH/jitsu && \
 make && \
@@ -44,8 +60,20 @@ strip scripts/fast-vif-bridge && \
 cd - || \
 exit -1
 
+# setting up pins
+opam pin add mirage-net-xen 1.2.0 -y -n
+opam pin add tcpip 'https://github.com/samoht/mirage-tcpip#fast-start-3' -y -n
+opam pin add mirage-types 'https://github.com/samoht/mirage#uip' -y # both mirage-net-xen and tcpip depends on mirage-types, so only recompile here
+
 # make sure old unikernel is not running
+
+# disable delays in bridge, set in "hub mode"
+echo "disable stp"
+sudo brctl stp br0 off
+echo "set ageing 0"
 sudo brctl setageing br0 0
+echo "set fd 0"
+sudo brctl setfd br0 0
 
 # setup unikernel
 
@@ -153,3 +181,6 @@ make_unikernel synjitsu $UNIKERNEL_IP5 $UNIKERNEL_MAC5 $RESULT_PATH/synjitsu.xen
 
 # Remove ip from xenstore, just in case
 sudo xenstore-rm /ip
+
+# disabling remote cron
+sudo service cron stop

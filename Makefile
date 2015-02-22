@@ -16,20 +16,20 @@ REMOTE_HOST = cubieboard2.local
 REMOTE_USER = mirage
 REMOTE_PORT ?= 22
 
-UNIKERNEL_IP1=10.0.1.140
+UNIKERNEL_IP1=10.0.2.140
 UNIKERNEL_MAC1=c0:ff:ee:c0:ff:ee
-UNIKERNEL_IP2=10.0.1.141
+UNIKERNEL_IP2=10.0.2.141
 UNIKERNEL_MAC2=c0:ff:ee:bb:ee:ff
-UNIKERNEL_IP3=10.0.1.142
+UNIKERNEL_IP3=10.0.2.142
 UNIKERNEL_MAC3=c0:ff:ee:ee:ee:ee
-UNIKERNEL_IP4=10.0.1.143
+UNIKERNEL_IP4=10.0.2.143
 UNIKERNEL_MAC4=de:ad:bb:ee:ee:ff
-UNIKERNEL_IP5=10.0.1.144
+UNIKERNEL_IP5=10.0.2.144
 UNIKERNEL_MAC5=de:ad:bb:ee:ee:ee
 UNIKERNEL_NETMASK=255.255.255.0
-UNIKERNEL_GW=10.0.1.1
+UNIKERNEL_GW=10.0.2.1
 
-LINUX_GUEST_IP1=10.0.1.145
+LINUX_GUEST_IP1=10.0.2.145
 
 SHELL=/bin/bash
 
@@ -139,7 +139,18 @@ run: | sync_time sync_tests
 
 	# copy environment to remote 
 	$(SCP) $(LOCAL_RESULTS_ROOT_PATH)/local_environment $(REMOTE_USER)@$(REMOTE_HOST):$(REMOTE_RESULTS_ROOT_PATH)/remote_environment
-	
+
+	# store opam universe
+	@echo "Local opam universe"
+	opam switch export $(LOCAL_RESULTS_ROOT_PATH)/local_opam_universe 
+	cat $(LOCAL_RESULTS_ROOT_PATH)/local_opam_universe
+	@echo "Local opam pins"
+	opam pin | tee $(LOCAL_RESULTS_ROOT_PATH)/local_opam_pins
+	@echo "Remote opam universe"
+	$(SSH_EXEC) "opam switch export $(REMOTE_RESULTS_ROOT_PATH)/remote_opam_universe ; cat $(REMOTE_RESULTS_ROOT_PATH)/remote_opam_universe"
+	@echo "Remote opam pins"
+	$(SSH_EXEC) "opam pin | tee $(REMOTE_RESULTS_ROOT_PATH)/remote_opam_pins"
+
 	# execute before_first_test if it exists
 	test -x "$(LOCAL_TEST_ROOT_PATH)/before_first_test_local" && cd $(LOCAL_RESULTS_ROOT_PATH) && "$(LOCAL_TEST_ROOT_PATH)/before_first_test_local" 2>&1 | tee -a run_local.log
 

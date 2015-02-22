@@ -1,6 +1,6 @@
 #!/bin/bash
 
-HOSTS="10.0.1.145"
+HOSTS=$LINUX_GUEST_IP1
 REPS=10
 PINGS=100
 

@@ -35,10 +35,10 @@ let remove xs k =
 
 let write xs kvs =
   let kvs = List.map (fun (k, v) -> xs_key k, v) kvs in
-  let str =
+(*  let str =
     String.concat " " (List.map (fun (k, v) -> sprintf "%s:%s" k v) kvs)
   in
-(*  printf "write %s\n" str; *)
+  printf "write %s\n" str; *)
   OS.Xs.(transaction xs (fun h ->
       Lwt_list.iter_p (fun (k, v) -> write h k v) kvs
     ))
@@ -63,7 +63,7 @@ let directory xs k =
   |> return
 
 let start () =
-  let module KV: Tcpv4.Pcb.KV.S = struct
+  let module KV: Tcp.Pcb.KV.S = struct
     let mk fn x =
       OS.Xs.make () >>= fun xs ->
       fn xs x
@@ -73,4 +73,4 @@ let start () =
     let watch x = mk watch x
     let directory x = mk directory x
   end in
-  Tcpv4.Pcb.KV.set (module KV)
+  Tcp.Pcb.KV.set (module KV)

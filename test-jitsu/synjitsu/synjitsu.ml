@@ -13,7 +13,7 @@ module Main (C: CONSOLE) (S: STACKV4) = struct
 
   let start c s =
     I.start ();
-    Tcpv4.Pcb.set_mode `Fast_start_proxy;
+    Tcp.Pcb.set_mode `Fast_start_proxy;
 
     (* listen on all ports *)
     S.listen_tcpv4 s (-1) (fun _ -> return_unit);
