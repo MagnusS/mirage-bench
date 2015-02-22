@@ -1,5 +1,0 @@
-#!/bin/bash
-
-echo "This script is executed locally before the tests"
-
-sudo apt-get install hping3

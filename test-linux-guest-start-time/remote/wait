@@ -1,9 +1,0 @@
-#!/bin/bash
-
-echo "Waiting for local to kill me"
-
-while : ; do
-	sleep 1
-done
-
-echo "Done"
