@@ -1,6 +1,6 @@
 mirage-bench
 ============
-This is a simple bash/make-based test framework for evaluating client/server applications. It is not ready for use.
+This is a simple bash/make-based test framework for evaluating client/server applications.
 
 ### Cubieboard/remote setup ###
 
